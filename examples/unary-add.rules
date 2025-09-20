@@ -1,0 +1,5 @@
+-- Unary addition
+-- adds two natural numbers in unary representation.
+-- Example: 111+11 = 11111 (3 + 2 = 5)
+
++ ->;
