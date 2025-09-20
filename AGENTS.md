@@ -6,6 +6,28 @@
 - **Live Notes**: Timestamped entries using Plan/Verify/Done/Next blocks (template in §13 global doc).
 
 ## Live Action Notes
+2025-09-20 20:10 UTC — Add non-interactive CLI mode
+Plan:
+- Problem: The executable currently only supports interactive tracing via the REPL, so it cannot be scripted to trace a specific input string and exit after printing the result.
+- Acceptance criteria:
+  * CLI accepts an optional `--input` argument and exits after printing the trace when provided.
+  * CLI supports an optional `--max-steps` argument that limits the number of rewrite steps emitted (inclusive of the starting state).
+  * New and existing unit tests cover option parsing and limited trace output behaviour and all tests pass under `-Werror`.
+  * Interactive REPL behaviour remains unchanged when `--input` is omitted.
+- Steps:
+  * Add failing tests for option parsing (including `--input`/`--max-steps`) and trace limiting helper logic.
+  * Extend CLI options data type/parser and implement a reusable trace-printing helper with optional step cap.
+  * Update `Main` to dispatch between non-interactive run and REPL, ensuring shared output formatting.
+  * Run verification commands and capture evidence, updating docs if behaviour changes.
+Verify:
+- Commands: `cabal build`, `cabal test`, `cabal run turing -- test/data/sample.rules --input abc`, `cabal run turing -- test/data/sample.rules --input abc --max-steps 1`.
+- Evidence: exit codes (0), tail of non-interactive outputs showing numbered trace with and without step limit.
+- Rollback: `git checkout -- app/Main.hs src/Rewrite/Repl.hs src/Turing/CLI.hs test/Main.hs turing.cabal`.
+Done:
+- Added tests guarding `--input`/`--max-steps` parsing and trace limiting, implemented non-interactive run path with reusable helpers, and documented the new flags.
+- `cabal test`, `cabal build`, `cabal run turing -- test/data/sample.rules --input abc`, and `cabal run turing -- test/data/sample.rules --input abc --max-steps 1` each exited 0 with expected trace output.
+Next:
+- None; ready for handoff.
 2025-09-20 17:12 UTC — Document CLI additions
 Plan:
 - Problem: Project changelog lacks notes about the new optparse CLI and interactive trace REPL behaviour, so documentation is out of date.

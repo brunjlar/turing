@@ -11,7 +11,7 @@ import qualified Data.Text        as T
 
 import           Rewrite          (Rule (..), Rules)
 import           Rewrite.Parser   (parseRules)
-import           Rewrite.Repl     (renderTraceLines)
+import           Rewrite.Repl     (renderTraceLines, renderTraceLinesLimited)
 import           Turing.CLI       (Options (..), parserInfo)
 
 import           Options.Applicative (ParserResult (..), defaultPrefs,
@@ -80,12 +80,42 @@ unitSpecs = do
           parsed = execParserPure defaultPrefs parserInfo []
       parsed `shouldSatisfy` isFailureResult
 
+    it "parses optional input string" $ do
+      let parsed :: ParserResult Options
+          parsed = execParserPure defaultPrefs parserInfo ["rules.txt", "--input", "abc"]
+      case parsed of
+        Success opts -> inputString opts `shouldBe` Just "abc"
+        _            -> fail $ "expected Success, got: " <> show parsed
+
+    it "parses non-negative max steps" $ do
+      let parsed :: ParserResult Options
+          parsed = execParserPure defaultPrefs parserInfo ["rules.txt", "--max-steps", "2"]
+      case parsed of
+        Success opts -> maxSteps opts `shouldBe` Just 2
+        _            -> fail $ "expected Success, got: " <> show parsed
+
+    it "rejects negative max steps" $ do
+      let parsed :: ParserResult Options
+          parsed = execParserPure defaultPrefs parserInfo ["rules.txt", "--max-steps", "-1"]
+      parsed `shouldSatisfy` isFailureResult
+
   describe "renderTraceLines" $ do
     it "numbers each rewrite step" $ do
       let rules = [Rule "a" "b", Rule "b" "c"]
       let rendered = renderTraceLines rules "a"
       rendered `shouldBe`
         ["step 0: a", "step 1: b", "step 2: c"]
+
+  describe "renderTraceLinesLimited" $ do
+    it "caps the number of reported steps" $ do
+      let rules = [Rule "a" "aa"]
+      let rendered = renderTraceLinesLimited (Just 1) rules "a"
+      rendered `shouldBe` ["step 0: a", "step 1: aa"]
+
+    it "matches renderTraceLines when unlimited" $ do
+      let rules = [Rule "a" "aa"]
+      take 3 (renderTraceLinesLimited Nothing rules "a") `shouldBe`
+        take 3 (renderTraceLines rules "a")
 
 rulesToTuples :: Rules Char -> [([Char], [Char])]
 rulesToTuples = fmap $ \(Rule lhs rhs) -> (lhs, rhs)

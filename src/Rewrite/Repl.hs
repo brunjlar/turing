@@ -2,7 +2,9 @@
 
 module Rewrite.Repl
   ( renderTraceLines
+  , renderTraceLinesLimited
   , runRepl
+  , runTraceOnce
   ) where
 
 import           Control.Exception      (AsyncException (UserInterrupt), catch,
@@ -18,6 +20,15 @@ renderTraceLines :: Rules Char -> String -> [T.Text]
 renderTraceLines rules input = zipWith format [0 :: Int ..] (trace rules input)
   where
     format idx step = T.pack ("step " <> show idx <> ": " <> step)
+
+renderTraceLinesLimited :: Maybe Int -> Rules Char -> String -> [T.Text]
+renderTraceLinesLimited maybeLimit rules input = applyLimit (renderTraceLines rules input)
+  where
+    applyLimit = maybe id (take . succ) maybeLimit
+
+runTraceOnce :: Rules Char -> Maybe Int -> String -> IO ()
+runTraceOnce rules maybeLimit input =
+  for_ (renderTraceLinesLimited maybeLimit rules input) TIO.putStrLn
 
 runRepl :: Rules Char -> IO ()
 runRepl rules = do
@@ -37,7 +48,7 @@ runRepl rules = do
           when continue loop
 
     printTrace :: String -> IO ()
-    printTrace line = for_ (renderTraceLines rules line) TIO.putStrLn
+    printTrace line = runTraceOnce rules Nothing line
 
     traceInterrupted :: AsyncException -> IO Bool
     traceInterrupted UserInterrupt = do
