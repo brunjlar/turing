@@ -1,0 +1,16 @@
+-- Append a trailing bar to unary inputs (including the empty string).
+-- The leading guard `| -> |` relies on the leftmost-application strategy: once a bar
+-- appears anywhere, this rule fires, makes no change, and halts the trace.
+| -> |;
+
+-- Bubble the cursor (`.`) to the right until the end of the unary block.
+.1 -> 1.;
+
+-- Turn the terminal cursor into the final bar.
+. -> |;
+
+-- Introduce the cursor immediately before the first 1.
+1 -> .1;
+
+-- Handle the empty input by emitting a lone bar.
+-> |;

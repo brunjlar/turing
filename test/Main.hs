@@ -2,20 +2,24 @@
 
 module Main (main) where
 
-import           Test.Hspec       (Spec, describe, it, shouldBe, shouldSatisfy)
+import           Test.Hspec       (Spec, describe, it, runIO, shouldBe,
+                                   shouldSatisfy)
+import           Test.Hspec.QuickCheck (prop)
 import           Test.Tasty       (defaultMain, testGroup)
 import           Test.Tasty.Hspec (testSpec)
 
 import           Data.Text        (Text)
 import qualified Data.Text        as T
+import qualified Data.Text.IO     as TIO
 
-import           Rewrite          (Rule (..), Rules)
+import           Rewrite          (Rule (..), Rules, trace)
 import           Rewrite.Parser   (parseRules)
 import           Rewrite.Repl     (renderTraceLines, renderTraceLinesLimited)
 import           Turing.CLI       (Options (..), parserInfo)
 
 import           Options.Applicative (ParserResult (..), defaultPrefs,
                                       execParserPure)
+import           Test.QuickCheck (Property, (===), chooseInt, forAll)
 
 main :: IO ()
 main = do
@@ -116,6 +120,34 @@ unitSpecs = do
       let rules = [Rule "a" "aa"]
       take 3 (renderTraceLinesLimited Nothing rules "a") `shouldBe`
         take 3 (renderTraceLines rules "a")
+
+  describe "append-bar example" $ do
+    appendRules <- runIO $ do
+      contents <- TIO.readFile "examples/append-bar.rules"
+      case parseRules contents of
+        Left err    -> fail ("failed to parse append-bar.rules: " <> T.unpack err)
+        Right rules -> pure rules
+
+    let finalState input = last (trace appendRules input)
+
+    it "handles the empty string and a few concrete inputs" $ do
+      finalState "" `shouldBe` "|"
+      finalState "1" `shouldBe` "1|"
+      finalState "1111111" `shouldBe` "1111111|"
+
+    it "produces a trace that ends with a bar" $ do
+      let steps = renderTraceLines appendRules "111"
+      last steps `shouldBe` "step 5: 111|"
+
+    prop "appends exactly one bar" $ appendBarProperty appendRules
+  where
+    appendBarProperty :: Rules Char -> Property
+    appendBarProperty rules =
+      let maxLen = 16
+      in forAll (chooseInt (0, maxLen)) $ \n ->
+        let input  = replicate n '1'
+            output = last (trace rules input)
+        in output === replicate n '1' ++ "|"
 
 rulesToTuples :: Rules Char -> [([Char], [Char])]
 rulesToTuples = fmap $ \(Rule lhs rhs) -> (lhs, rhs)

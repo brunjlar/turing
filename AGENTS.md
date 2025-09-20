@@ -6,6 +6,29 @@
 - **Live Notes**: Timestamped entries using Plan/Verify/Done/Next blocks (template in §13 global doc).
 
 ## Live Action Notes
+2025-09-20 20:20 UTC — Append-bar example
+Plan:
+- Problem: Provide a reusable example that appends a trailing '|' to unary inputs while ensuring the rules are covered by automated tests.
+- Acceptance criteria:
+  * `examples/append-bar.rules` rewrites any string of '1's (including empty) to append a trailing '|'.
+  * Automated tests (QuickCheck plus concrete cases) guard the behaviour and pass under `-Werror`.
+  * Example terminates without relying on `--max-steps` safety limits.
+- Steps:
+  * Adopt the sentinel-based rules from `foo.rules`, explain the guard rule, and install them as `examples/append-bar.rules`.
+  * Extend the test suite with deterministic checks and a QuickCheck property over bounded unary inputs.
+  * Run `cabal build` + `cabal test` and capture the relevant evidence.
+Verify:
+- Commands: `cabal build`, `cabal test`.
+- Evidence: both exit 0; QuickCheck reports `appends exactly one bar: OK`.
+- Rollback: `git checkout -- examples/append-bar.rules test/Main.hs turing.cabal AGENTS.md` if needed.
+
+- Note: Prefer prototyping rewrites with existing Haskell helpers to avoid semantic drift.
+Done:
+- Moved the working rule set into `examples/append-bar.rules` with inline notes about the no-op guard and cursor mechanics.
+- Added hspec/QuickCheck coverage that reads the example, asserts concrete traces (empty, short, long), and proves `trace rules input` ends at `1^n|` for random unary inputs.
+- Reintroduced the QuickCheck dependency in `turing.cabal`; `cabal build` and `cabal test` both pass.
+Next:
+- None; task complete.
 2025-09-20 20:10 UTC — Add non-interactive CLI mode
 Plan:
 - Problem: The executable currently only supports interactive tracing via the REPL, so it cannot be scripted to trace a specific input string and exit after printing the result.
@@ -158,5 +181,7 @@ Next:
 - If network access becomes available, run `cabal update` then `cabal test` to install tasty/hspec/QuickCheck packages.
 
 ## Scratchpad
+- 2025-09-20: Apparent impossibility came from assuming the dot cursor needed a fresh sentinel; existing rules already provide a neutral guard. Lesson: test for termination by simulating `Rewrite.trace` rather than reasoning purely about rule forms.
+- 2025-09-20: Empty-LHS rules can terminate cleanly when paired with a no-op guard (e.g., `| -> |;`) that short-circuits `step`; pointer rules (`1 -> .1`, `.1 -> 1.`) move a cursor without extra sentinels. Challenge every assumption and verify it via `Rewrite.trace` before declaring limits.
 - 2025-09-19: Repo contains `LICENSE` and `run-codex.sh`; AGENTS.md added for local protocols.
 - 2025-09-19: `cabal.project` enables `tests: True` for reproducible `cabal test`. Requires network to fetch tasty/hspec/QuickCheck from Hackage.
