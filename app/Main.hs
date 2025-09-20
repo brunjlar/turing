@@ -2,21 +2,18 @@
 
 module Main (main) where
 
-import qualified Data.Text.IO       as T
-import           Rewrite            (Rules)
-import           Rewrite.Parser     (parseRules)
-import           System.Environment (getArgs)
-import           System.Exit        (exitFailure)
-import           System.IO          (hPutStrLn, stderr)
+import qualified Data.Text.IO   as T
+import           Rewrite        (Rules)
+import           Rewrite.Parser (parseRules)
+import           Rewrite.Repl   (runRepl)
+import           System.Exit    (exitFailure)
+import           System.IO      (stderr)
+import           Turing.CLI     (Options (..), parseOptions)
 
 main :: IO ()
 main = do
-  args <- getArgs
-  case args of
-    [path] -> processFile path
-    _      -> do
-      hPutStrLn stderr "Usage: turing <rules-file>"
-      exitFailure
+  opts <- parseOptions
+  processFile (rulesFile opts)
 
 processFile :: FilePath -> IO ()
 processFile path = do
@@ -25,7 +22,9 @@ processFile path = do
     Left err -> do
       T.hPutStrLn stderr err
       exitFailure
-    Right rules -> printRules rules
+    Right rules -> do
+      printRules rules
+      runRepl rules
 
 printRules :: Rules Char -> IO ()
 printRules rules = print rules

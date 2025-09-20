@@ -6,6 +6,62 @@
 - **Live Notes**: Timestamped entries using Plan/Verify/Done/Next blocks (template in §13 global doc).
 
 ## Live Action Notes
+2025-09-20 17:12 UTC — Document CLI additions
+Plan:
+- Problem: Project changelog lacks notes about the new optparse CLI and interactive trace REPL behaviour, so documentation is out of date.
+- Acceptance criteria:
+  * `CHANGELOG.md` gains an "Unreleased" section mentioning the CLI help improvements and interactive REPL trace support.
+- Steps:
+  * Edit `CHANGELOG.md` to add the new section and bullet points.
+Verify:
+- Manual: confirm the changelog renders the new section and text; no commands required.
+- Rollback: `git checkout -- CHANGELOG.md` if wording needs reset.
+Done:
+- `CHANGELOG.md` now includes an "Unreleased" section documenting the optparse-based CLI help text and interactive REPL trace behaviour.
+Next:
+- None; documentation updated.
+2025-09-20 17:08 UTC — Verify CLI REPL behaviour
+Plan:
+- Problem: Confirm the optparse-applicative CLI wiring and REPL loop behave as expected by building, running tests, and exercising the executable with sample input.
+- Acceptance criteria:
+  * `cabal build` and `cabal test` succeed without warnings under `-Werror`.
+  * `cabal run turing -- --help` shows the new help/usage text.
+  * Supplying `abc` via stdin to `cabal run turing -- test/data/sample.rules` prints numbered trace steps for each rewrite.
+- Steps:
+  * Run the build and unit tests to ensure code compiles and tests stay green.
+  * Capture `--help` output for documentation.
+  * Pipe a sample string through the executable and confirm the trace output format.
+Verify:
+- Commands: `cabal build`, `cabal test`, `cabal run turing -- --help`, `printf 'abc\\n' | cabal run turing -- test/data/sample.rules`.
+- Evidence: exit codes (expect 0), tail of `--help` and pipeline output showing numbered trace, noting interactive prompt handling.
+- Rollback: No code changes expected; if required, `git checkout -- AGENTS.md` to revert notes.
+Done:
+- Build, test, and manual CLI checks all succeeded: `cabal build`, `cabal test`, `cabal run turing -- --help`, and piping `abc` through `cabal run turing -- test/data/sample.rules` (each exit 0 with expected help + trace output).
+Next:
+- None; verification complete.
+2025-09-20 15:15 UTC — Introduce optparse CLI and interactive trace REPL
+Plan:
+- Problem: CLI needs optparse-applicative help/usage output while preserving rules-file argument and extending behaviour with an interactive trace REPL that respects Ctrl-C.
+- Acceptance criteria:
+  * New optparse-applicative parser yields helpful `--help` output and accepts a mandatory rules file path.
+  * After printing parsed rules, the executable enters a loop reading lines, printing each rewrite trace, and tolerates Ctrl-C without leaving terminal in inconsistent state.
+  * Existing parser tests stay green and new tests cover CLI option parsing and trace formatting helper logic.
+  * `cabal build` and `cabal test` complete without warnings (still under `-Werror`).
+- Steps:
+  * Add failing tests for CLI parsing and trace rendering utility to drive REPL output structure.
+  * Implement optparse-applicative based CLI, REPL loop, and graceful Ctrl-C handling; update Cabal dependencies.
+  * Run verification commands and capture evidence; document any manual verification gaps.
+Verify:
+- Commands: `cabal build`, `cabal test`, `cabal run turing -- --help`, `printf 'abc\\n' | cabal run turing -- test/data/sample.rules`.
+- Evidence: exit codes, tail of CLI output (≤200 lines) confirming help text and trace interaction.
+- Rollback: `git checkout -- app/Main.hs src/Rewrite.hs test/Main.hs turing.cabal`.
+Done:
+- Added `Turing.CLI` optparse-applicative parser with help metadata and tests for required rules argument success/failure.
+- Introduced `Rewrite.Repl` with `renderTraceLines` (numbered steps) and `runRepl` handling Ctrl-C during traces while exiting on input interrupt; unit test covers formatting.
+- Updated `app/Main.hs` to use new parser + REPL, preserving rules printing; cabal file exposes new modules and dependencies.
+- Evidence gathered: `cabal test`, `cabal build`, `cabal run turing -- --help`, `printf 'abc\n' | cabal run turing -- test/data/sample.rules` (all exit 0).
+Next:
+- None; task complete.
 2025-09-20 14:50 UTC — Remove colon requirement and enforce -Werror
 Plan:
 - Problem: Parser syntax must drop leading ':' while still handling whitespace/escapes, and build should treat warnings as errors.
