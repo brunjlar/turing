@@ -52,14 +52,16 @@ extra-doc-files:    CHANGELOG.md
 -- extra-source-files:
 
 common warnings
-    ghc-options: -Wall
+    ghc-options: -Wall -Werror
 
 library
     -- Import common warning flags.
     import:           warnings
 
     -- Modules exported by the library.
-    exposed-modules:  Rewrite
+    exposed-modules:
+        Rewrite
+      , Rewrite.Parser
 
     -- Modules included in this library but not exported.
     -- other-modules:
@@ -68,7 +70,10 @@ library
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
-    build-depends:    base ^>=4.21.0.0
+    build-depends:
+        base ^>=4.21.0.0,
+        megaparsec ^>=9.6,
+        text >=2.1 && <2.2
 
     -- Directories containing source files.
     hs-source-dirs:   src
@@ -92,6 +97,7 @@ executable turing
     -- Other library packages from which modules are imported.
     build-depends:
         base ^>=4.21.0.0,
+        text >=2.1 && <2.2,
         turing
 
     -- Directories containing source files.
@@ -125,9 +131,8 @@ test-suite turing-test
     -- Test dependencies.
     build-depends:
         base ^>=4.21.0.0,
-        QuickCheck ^>=2.14,
         hspec ^>=2.11,
         tasty ^>=1.4,
         tasty-hspec ^>=1.2,
-        tasty-quickcheck ^>=0.10,
+        text >=2.1 && <2.2,
         turing

@@ -1,0 +1,5 @@
+-- Duplicate spaces
+\s -> \s\s;
+
+{- Uppercase conversion -}
+abc -> ABC;

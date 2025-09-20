@@ -6,6 +6,62 @@
 - **Live Notes**: Timestamped entries using Plan/Verify/Done/Next blocks (template in §13 global doc).
 
 ## Live Action Notes
+2025-09-20 14:50 UTC — Remove colon requirement and enforce -Werror
+Plan:
+- Problem: Parser syntax must drop leading ':' while still handling whitespace/escapes, and build should treat warnings as errors.
+- Acceptance criteria:
+  * All parser specs updated for new syntax (including literal backslash coverage) pass.
+  * CLI processes colon-less rules correctly.
+  * `cabal build`/`cabal test` succeed with `-Werror` enabled (no warnings).
+- Steps:
+  * Update tests/fixtures to capture new grammar and escaping behaviour.
+  * Modify `Rewrite.Parser` (and helpers) to accept colon-less rules.
+  * Adjust cabal common warnings to include `-Werror`.
+  * Rebuild, rerun tests, and confirm CLI behaviour.
+Verify:
+- Commands: `cabal build`, `cabal test`, `cabal run turing -- test/data/sample.rules`.
+- Evidence: exit codes/log snippets ≤200 lines.
+- Rollback: `git checkout -- app/Main.hs src/Rewrite.hs src/Rewrite/Parser.hs test/Main.hs test/data/sample.rules turing.cabal` if necessary.
+Done:
+- Parser specs cover colon-less syntax, whitespace duplication via escapes, literal backslashes, and failure messaging.
+- `Rewrite.Parser` updated to accept rules without leading colon while preserving intentional leading spaces and skipping inter-rule whitespace/comments.
+- Cabal `common warnings` now enforces `-Wall -Werror`; CLI parses/prints updated sample rules fixture.
+- Evidence captured:
+  * `cabal build` (exit 0)
+  * `cabal test` (parser suite 7/7 green)
+  * `cabal run turing -- test/data/sample.rules` → `[Rule " " "  ",Rule "abc" "ABC"]`
+Next:
+- None; task complete.
+2025-09-20 14:36 UTC — Implement rules parser and CLI integration
+Plan:
+- Problem: Need a robust parser for textual rules with whitespace/comments and to hook it into CLI plus tests.
+- Acceptance criteria:
+  * `parseRules` parses representative success cases and returns `Rules Char` matching expectations.
+  * Parsing failures yield informative `Left` messages (non-empty, mention location).
+  * CLI accepts a rules file argument, reports parse errors with non-zero exit, prints parsed rules otherwise.
+- Steps:
+  * Review existing modules/dependencies for parser integration.
+  * Add failing tests covering parser success/failure and CLI behaviour surface.
+  * Implement parser module and supporting library changes, update cabal dependencies.
+  * Wire parser into executable output flow.
+Verify:
+- Commands to run:
+  * `cabal build`
+  * `cabal test`
+  * `cabal run turing -- test/data/sample.rules`
+- Evidence to capture: exit codes and concise command output summaries (<200 lines).
+- Rollback/Cleanup: `git checkout -- .` and remove temporary fixtures under `test/data/` if introduced.
+Done:
+- Added targeted hspec specs for parser happy-paths, whitespace handling, escapes, error reporting.
+- Implemented `Rewrite.Parser` using Megaparsec with comment-aware whitespace trimming, escape handling, and preserved whitespace-only rules; derived `Show` for `Rule`.
+- Updated CLI to read a rules file, parse with error propagation to stderr, and print parsed rules; added sample fixture.
+- Commands executed with success:
+  * `cabal build`
+  * `cabal test`
+  * `cabal run turing -- test/data/sample.rules`
+Next:
+- None; task complete.
+
 2025-09-19 20:10 UTC — Initialize Cabal project with tests
 Plan:
 - Review repository for nested instructions (AGENTS.md) before generating files.

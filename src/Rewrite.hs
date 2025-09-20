@@ -5,6 +5,7 @@ module Rewrite
   ) where
 
 data Rule a = Rule ![a] ![a]
+  deriving (Eq, Show)
 
 type Rules a = [Rule a]
 
