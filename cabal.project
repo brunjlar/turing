@@ -1,0 +1,4 @@
+packages: .
+
+package turing
+  tests: True
