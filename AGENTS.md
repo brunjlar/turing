@@ -6,6 +6,51 @@
 - **Live Notes**: Timestamped entries using Plan/Verify/Done/Next blocks (template in §13 global doc).
 
 ## Live Action Notes
+2025-09-20 23:00 UTC — Remove explicit # requirement
+Plan:
+- Problem: Duplicate rules currently expect callers to append '#'; need self-contained example that appends its own sentinel before duplicating.
+- Acceptance criteria:
+  * `examples/duplicate.rules` accepts bare unary input, appends the sentinel internally, and still terminates at `input ++ "|" ++ input`.
+  * Existing duplicate tests drop manual '#', stay green under `-Werror`.
+  * Trace from `cabal run turing -- examples/duplicate.rules --input 111` ends at `111|111` with no `--max-steps`.
+- Steps:
+  * Extend the rules with a Stage 0 append sequence (inspired by append-bar) that adds '#', then hands off to the existing stages.
+  * Update deterministic + QuickCheck specs to feed plain unary strings.
+  * Rebuild/test (`cabal build`, `cabal test`) and capture outputs; update Live Notes/Scratchpad as needed.
+Verify:
+- Commands: `cabal build`, `cabal test`, `cabal run turing -- examples/duplicate.rules --input 111`.
+- Evidence: exit codes 0; trace ends at `111|111`.
+- Rollback: `git checkout -- examples/duplicate.rules test/Main.hs AGENTS.md`.
+
+Done:
+- Added Stage 0 cursor rules that append '#', reordered the pipeline, and added a guard to keep Stage 0 from restarting once `|` is present.
+- Dropped the manual '#` from the duplicate tests and adjusted the trace expectation to `step 19: 111|111`; QuickCheck now drives bare unary inputs.
+- Verified with `cabal test`, `cabal build`, and `cabal run turing -- examples/duplicate.rules --input 111` (all exit 0 and the trace terminates at `111|111`).
+Next:
+- None; duplicate example now self-appends its sentinel.
+
+2025-09-20 21:05 UTC — Add unary duplicate example
+Plan:
+- Problem: Provide a terminating rewrite system that maps unary strings to a duplicated form with a central '|', enabling richer examples for the rules language.
+- Acceptance criteria:
+  * `examples/duplicate.rules` rewrites any unary string (possibly empty) to `input ++ "|" ++ input`.
+  * Automated tests (deterministic plus QuickCheck) cover the expected outputs and termination under `-Werror`.
+  * Existing suites stay green, and new example docs/comments explain the mechanism.
+- Steps:
+  * Explore pointer/marker strategies inspired by the append example; prototype candidate rules with the CLI to ensure termination.
+  * Favour a staged pipeline (`1 -> t`, `st -> astb`, sorting, then `a/b -> 1`) so the initial staging rule never re-triggers after final conversion.
+  * Once a viable rule set is found, add it under `examples/duplicate.rules` with explanatory comments.
+  * Extend `test/Main.hs` with concrete cases and a property asserting `last (trace rules s)` equals the duplicated string for bounded unary inputs.
+  * Run `cabal build` and `cabal test`, capturing evidence, then update AGENTS.md with lessons.
+Verify:
+- Commands: `cabal build`, `cabal test`, optional spot checks via `cabal run turing -- examples/duplicate.rules --input 111`.
+- Evidence: exit codes (0) and test output showing duplicate property passed.
+- Rollback: `git checkout -- examples/duplicate.rules test/Main.hs turing.cabal AGENTS.md`.
+
+Done:
+- Ran `cabal run turing -- examples/duplicate.rules --input 111 --max-steps 1000`; hit the cap with an ever-growing string, so rules still diverge even though the CLI stays upright.
+Next:
+- Rework the staged rules so the pointer returns left and conversion to `1` values halts after duplication; prototype revised guards before rerunning the trace command.
 2025-09-20 20:20 UTC — Append-bar example
 Plan:
 - Problem: Provide a reusable example that appends a trailing '|' to unary inputs while ensuring the rules are covered by automated tests.
@@ -181,6 +226,7 @@ Next:
 - If network access becomes available, run `cabal update` then `cabal test` to install tasty/hspec/QuickCheck packages.
 
 ## Scratchpad
+- 2025-09-20: Unary duplication terminates cleanly when staging with a trailing '#': sweep `1# -> #1b`, reorder with `b1 -> 1b` and `# -> @; @1 -> 1@`, then reveal via `@ -> |; b -> 1`. Tests append/remove the sentinel automatically.
 - 2025-09-20: Apparent impossibility came from assuming the dot cursor needed a fresh sentinel; existing rules already provide a neutral guard. Lesson: test for termination by simulating `Rewrite.trace` rather than reasoning purely about rule forms.
 - 2025-09-20: Empty-LHS rules can terminate cleanly when paired with a no-op guard (e.g., `| -> |;`) that short-circuits `step`; pointer rules (`1 -> .1`, `.1 -> 1.`) move a cursor without extra sentinels. Challenge every assumption and verify it via `Rewrite.trace` before declaring limits.
 - 2025-09-19: Repo contains `LICENSE` and `run-codex.sh`; AGENTS.md added for local protocols.

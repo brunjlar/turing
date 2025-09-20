@@ -1,0 +1,26 @@
+-- Duplicate a unary string by staging a right-hand copy. The rules append their
+-- own trailing '#' sentinel before performing the duplication, so callers only
+-- need to supply the unary payload.
+
+-- Stage 1: sweep the sentinel left, emitting copy markers for each 1.
+1# -> #1b;
+# -> @;
+
+-- Stage 2: bubble all original 1s ahead of the copy markers while sliding the
+-- separator placeholder.
+b1 -> 1b;
+@1 -> 1@;
+
+-- Stage 3: reveal the duplicated form.
+@ -> |;
+b -> 1;
+
+-- Final guard: once a bar appears, halt before Stage 0 can restart.
+| -> |;
+
+-- Stage 0: append a trailing '#'. Inspired by the append-bar example, these
+-- rules introduce a cursor that walks to the end before dropping the sentinel.
+.1 -> 1.;
+. -> #;
+1 -> .1;
+-> #;

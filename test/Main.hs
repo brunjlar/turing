@@ -140,7 +140,36 @@ unitSpecs = do
       last steps `shouldBe` "step 5: 111|"
 
     prop "appends exactly one bar" $ appendBarProperty appendRules
+
+  describe "duplicate example" $ do
+    duplicateRules <- runIO $ do
+      contents <- TIO.readFile "examples/duplicate.rules"
+      case parseRules contents of
+        Left err    -> fail ("failed to parse duplicate.rules: " <> T.unpack err)
+        Right rules -> pure rules
+
+    let finalDuplicate input = last (trace duplicateRules input)
+
+    it "duplicates the empty string and a few concrete inputs" $ do
+      finalDuplicate "" `shouldBe` "|"
+      finalDuplicate "1" `shouldBe` "1|1"
+      finalDuplicate "111" `shouldBe` "111|111"
+
+    it "produces a symmetric split in the trace" $ do
+      let steps = renderTraceLines duplicateRules "111"
+      last steps `shouldBe` "step 19: 111|111"
+
+    prop "duplicates unary inputs" $ duplicateProperty duplicateRules
+
   where
+    duplicateProperty :: Rules Char -> Property
+    duplicateProperty rules =
+      let maxLen = 12
+      in forAll (chooseInt (0, maxLen)) $ \n ->
+        let input  = replicate n '1'
+            output = last (trace rules input)
+        in output === input ++ "|" ++ input
+
     appendBarProperty :: Rules Char -> Property
     appendBarProperty rules =
       let maxLen = 16
