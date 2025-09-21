@@ -1,0 +1,5 @@
+-- Bubble-sort ternary digits into nondecreasing order.
+-- Rules swap out-of-order adjacent digits and stop once fully sorted.
+21 -> 12;
+20 -> 02;
+10 -> 01;

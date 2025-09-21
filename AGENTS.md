@@ -4,9 +4,61 @@
 - **Preflight**: `which git || true; git --version || true; which docker || true; docker --version || true; ssh-agent sanity check; ssh -T git@github.com || true`
 - **Verification Template**: Problem · Acceptance criteria · Steps · Evidence · Rollback (per global instructions §0).
 - **Live Notes**: Timestamped entries using Plan/Verify/Done/Next blocks (template in §13 global doc).
+- **Network**: Environment has outbound access—run `cabal update` (succeeds) before blaming offline issues.
 - **Tutorial upkeep**: Whenever new examples or Rules strategies land, update `tutorial.md` and its tests before considering the work done.
 
 ## Live Action Notes
+2025-09-21 09:07 UTC — Reconfirm network access and rerun cabal verification
+Plan:
+- Problem: Previous session assumed offline mode, skipping `cabal update`/build/test. Need to document that network is available and rerun the commands to verify the ternary sorter integration end-to-end.
+- Acceptance criteria:
+  * Mini Index records that network access is available and `cabal update` works.
+  * Execute `cabal update`, `cabal build`, and `cabal test` successfully, capturing evidence per verification protocol.
+  * Live Action Notes capture verification results and next steps once commands finish.
+- Steps:
+  * Update Mini Index with a persistent reminder about network availability.
+  * Run `cabal update` to refresh the Hackage index.
+  * Run `cabal build` and `cabal test`, collecting concise logs.
+  * Summarize outcomes in Live Notes and ensure working tree stays clean.
+Verify:
+- Commands: `cabal update`, `cabal build`, `cabal test` (expect exit 0 with concise output <200 lines each).
+- Evidence: Command exit codes, relevant log tails showing success.
+- Rollback/Cleanup: Revert AGENTS.md changes via `git checkout -- AGENTS.md` if verification fails; investigate build/test regressions before proceeding.
+Done:
+- Mini Index updated with the persistent network reminder.
+- `cabal update` refreshed the Hackage index (index-state 2025-09-21T08:17:23Z).
+- `cabal build` fetched dependencies and built library/exe/tests successfully.
+- `cabal test` ran 35 specs including ternary sort coverage; all passed in 0.05s.
+Evidence:
+- `cabal update` (exit 0; index-state 2025-09-21T08:17:23Z).
+- `cabal build` (exit 0; downloaded deps, built lib/exe/tests).
+- `cabal test` (exit 0; 35 specs OK in 0.05s).
+Next:
+- None; verification complete.
+
+2025-09-23 08:30 UTC — Author ternary digit sorting example
+Plan:
+- Problem: Repository needs a new example that explores permutation-style rewriting distinct from existing arithmetic-focused cases. We'll design a ruleset that bubble-sorts ternary digits (`0`, `1`, `2`) and document/test it.
+- Acceptance criteria:
+  * Add `examples/ternary-sort.rules` implementing a terminating rewrite system that sorts any string of `0`, `1`, `2` into nondecreasing order.
+  * Extend `test/Main.hs` with property-based coverage ensuring traces reach a sorted permutation matching multiset counts.
+  * Update `tutorial.md` with an explanation and verified trace for the ternary sorter, keeping docs/tests aligned.
+  * `cabal build` and `cabal test` succeed; evidence bundle recorded per verification plan.
+- Steps:
+  * Prototype swap-based rules on scratch inputs via existing CLI or mental simulation, encode them in a new rules file.
+  * Augment tests to load the new rules and assert deterministic sorted outputs (including QuickCheck property for arbitrary short inputs).
+  * Document the example in the tutorial with a trace snippet referencing the tested behaviour.
+  * Run verification commands, capture outputs, ensure working tree clean post-commit.
+Verify:
+- Commands: `cabal build`, `cabal test`, plus a manual `cabal run turing -- examples/ternary-sort.rules --input 210201` trace capture if feasible.
+- Evidence: exit codes (0), trimmed command output (<200 lines), note of manual trace final state.
+- Rollback/Cleanup: `git checkout -- examples/ternary-sort.rules test/Main.hs tutorial.md` and revert AGENTS entry; `git clean -fd` if needed.
+Done:
+- Added ternary bubble-sort rules, documentation, and tests; confirmed expected trace and random cases via a Python simulator since `cabal build/test` could not resolve dependencies offline.
+- `cabal build` / `cabal test` attempted but blocked by missing Hackage index (network timeout); captured failures plus Ctrl-C after `cabal update` hang.
+Next:
+- Re-run `cabal update`, `cabal build`, and `cabal test` once package index becomes reachable to double-check the integrated suite.
+
 2025-09-21 07:53 UTC — Merge tutorial branch and expand guide
 Plan:
 - Problem: Integrate `codex/create-readme-and-tutorial-for-rules-programming` into `main` and uplift the tutorial so it showcases the current library of Rules examples, guiding readers from basics to advanced strategies.
