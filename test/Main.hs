@@ -9,6 +9,7 @@ import           Test.Tasty       (defaultMain, testGroup)
 import           Test.Tasty.Hspec (testSpec)
 
 import           Data.Char        (intToDigit)
+import           Data.List        (sort)
 import           Data.Text        (Text)
 import qualified Data.Text        as T
 import qualified Data.Text.IO     as TIO
@@ -21,7 +22,8 @@ import           Turing.CLI       (Options (..), parserInfo)
 
 import           Options.Applicative (ParserResult (..), defaultPrefs,
                                       execParserPure)
-import           Test.QuickCheck (Property, (===), chooseInt, forAll)
+import           Test.QuickCheck (Property, (===), chooseInt, elements, forAll,
+                                  vectorOf)
 
 main :: IO ()
 main = do
@@ -286,6 +288,35 @@ unitSpecs = do
 
     prop "matches unary length for values up to 63" $ binaryToUnaryProperty binaryRules
 
+  describe "ternary sort example" $ do
+    ternaryRules <- runIO $ do
+      contents <- TIO.readFile "examples/ternary-sort.rules"
+      case parseRules contents of
+        Left err    -> fail ("failed to parse ternary-sort.rules: " <> T.unpack err)
+        Right rules -> pure rules
+
+    let finalSort input = last (trace ternaryRules input)
+
+    it "sorts documented samples" $ do
+      finalSort "" `shouldBe` ""
+      finalSort "2" `shouldBe` "2"
+      finalSort "210201" `shouldBe` "001122"
+
+    it "produces the expected trace for 210201" $ do
+      renderTraceLines ternaryRules "210201" `shouldBe`
+        [ "step 0: 210201"
+        , "step 1: 120201"
+        , "step 2: 102201"
+        , "step 3: 102021"
+        , "step 4: 102012"
+        , "step 5: 100212"
+        , "step 6: 100122"
+        , "step 7: 010122"
+        , "step 8: 001122"
+        ]
+
+    prop "sorts arbitrary ternary strings" $ ternarySortProperty ternaryRules
+
   where
     duplicateProperty :: Rules Char -> Property
     duplicateProperty rules =
@@ -338,6 +369,15 @@ unitSpecs = do
            let input  = toBinary n
                output = stripGuard (last (trace rules input))
            in output === replicate n '1'
+
+    ternarySortProperty :: Rules Char -> Property
+    ternarySortProperty rules =
+      let maxLen = 6
+      in forAll (chooseInt (0, maxLen)) $ \len ->
+           forAll (vectorOf len (elements "012")) $ \digits ->
+             let input  = digits
+                 output = last (trace rules input)
+             in output === sort input
 
 rulesToTuples :: Rules Char -> [([Char], [Char])]
 rulesToTuples = fmap $ \(Rule lhs rhs) -> (lhs, rhs)

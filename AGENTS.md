@@ -5,9 +5,88 @@
 - **Cabal deps**: Run `cabal update` before `cabal test`; container has full network access so dependency downloads succeed.
 - **Verification Template**: Problem · Acceptance criteria · Steps · Evidence · Rollback (per global instructions §0).
 - **Live Notes**: Timestamped entries using Plan/Verify/Done/Next blocks (template in §13 global doc).
+- **Network**: Environment has outbound access—run `cabal update` (succeeds) before blaming offline issues.
 - **Tutorial upkeep**: Whenever new examples or Rules strategies land, update `tutorial.md` and its tests before considering the work done.
 
 ## Live Action Notes
+2025-09-21 09:14 UTC — Merge user role management feature
+Plan:
+- Problem: Integrate `codex/implement-user-role-management-feature` into `main` so the latest role-management functionality lands without regressing the build or tests.
+- Acceptance criteria:
+  * `git merge origin/codex/implement-user-role-management-feature` completes on `main` with all conflicts resolved and history preserved.
+  * `cabal build` and `cabal test` exit 0 after the merge, demonstrating the repository remains healthy.
+  * Working tree returns to a clean state; verification evidence is captured and Live Notes updated with outcomes.
+- Steps:
+  1. Ensure local `main` is current with `origin/main` and review the role-management branch diff to anticipate conflicts.
+  2. Perform the merge, resolve any conflicts, and stage the results without introducing unrelated edits.
+  3. Run verification commands, capture evidence (exit codes, salient log tails), and prepare summary for the user.
+Verify:
+- Commands: `git fetch origin`, `git status -sb`, `git merge origin/codex/implement-user-role-management-feature`, `cabal build`, `cabal test`.
+- Evidence: Exit codes (0) plus concise build/test output (<200 lines) confirming green status.
+- Rollback/Cleanup: `git merge --abort` before staging, or `git reset --hard ORIG_HEAD` followed by `git clean -fd` if the merge is recorded; remove temporary artifacts as needed.
+
+Done:
+- Fast-forwarded `main`, merged `origin/codex/implement-user-role-management-feature`, and reconciled conflicts in `AGENTS.md`/`tutorial.md` while preserving the branch’s network guidance.
+- Integrated the ternary sort example into docs/tests and staged the new `examples/ternary-sort.rules` file alongside updated suite coverage.
+
+Evidence:
+- `cabal build` (exit 0; rebuilt library, executable, and tests after the merge).
+- `cabal test` (exit 0; 38 specs passed in 0.09s, including ternary sort coverage).
+
+Next:
+- None; merge ready for final commit once review wraps.
+
+2025-09-21 09:07 UTC — Reconfirm network access and rerun cabal verification
+Plan:
+- Problem: Previous session assumed offline mode, skipping `cabal update`/build/test. Need to document that network is available and rerun the commands to verify the ternary sorter integration end-to-end.
+- Acceptance criteria:
+  * Mini Index records that network access is available and `cabal update` works.
+  * Execute `cabal update`, `cabal build`, and `cabal test` successfully, capturing evidence per verification protocol.
+  * Live Action Notes capture verification results and next steps once commands finish.
+- Steps:
+  * Update Mini Index with a persistent reminder about network availability.
+  * Run `cabal update` to refresh the Hackage index.
+  * Run `cabal build` and `cabal test`, collecting concise logs.
+  * Summarize outcomes in Live Notes and ensure working tree stays clean.
+Verify:
+- Commands: `cabal update`, `cabal build`, `cabal test` (expect exit 0 with concise output <200 lines each).
+- Evidence: Command exit codes, relevant log tails showing success.
+- Rollback/Cleanup: Revert AGENTS.md changes via `git checkout -- AGENTS.md` if verification fails; investigate build/test regressions before proceeding.
+Done:
+- Mini Index updated with the persistent network reminder.
+- `cabal update` refreshed the Hackage index (index-state 2025-09-21T08:17:23Z).
+- `cabal build` fetched dependencies and built library/exe/tests successfully.
+- `cabal test` ran 35 specs including ternary sort coverage; all passed in 0.05s.
+Evidence:
+- `cabal update` (exit 0; index-state 2025-09-21T08:17:23Z).
+- `cabal build` (exit 0; downloaded deps, built lib/exe/tests).
+- `cabal test` (exit 0; 35 specs OK in 0.05s).
+Next:
+- None; verification complete.
+
+2025-09-23 08:30 UTC — Author ternary digit sorting example
+Plan:
+- Problem: Repository needs a new example that explores permutation-style rewriting distinct from existing arithmetic-focused cases. We'll design a ruleset that bubble-sorts ternary digits (`0`, `1`, `2`) and document/test it.
+- Acceptance criteria:
+  * Add `examples/ternary-sort.rules` implementing a terminating rewrite system that sorts any string of `0`, `1`, `2` into nondecreasing order.
+  * Extend `test/Main.hs` with property-based coverage ensuring traces reach a sorted permutation matching multiset counts.
+  * Update `tutorial.md` with an explanation and verified trace for the ternary sorter, keeping docs/tests aligned.
+  * `cabal build` and `cabal test` succeed; evidence bundle recorded per verification plan.
+- Steps:
+  * Prototype swap-based rules on scratch inputs via existing CLI or mental simulation, encode them in a new rules file.
+  * Augment tests to load the new rules and assert deterministic sorted outputs (including QuickCheck property for arbitrary short inputs).
+  * Document the example in the tutorial with a trace snippet referencing the tested behaviour.
+  * Run verification commands, capture outputs, ensure working tree clean post-commit.
+Verify:
+- Commands: `cabal build`, `cabal test`, plus a manual `cabal run turing -- examples/ternary-sort.rules --input 210201` trace capture if feasible.
+- Evidence: exit codes (0), trimmed command output (<200 lines), note of manual trace final state.
+- Rollback/Cleanup: `git checkout -- examples/ternary-sort.rules test/Main.hs tutorial.md` and revert the AGENTS entry if needed; use `git clean -fd` for temporary artifacts.
+Done:
+- Added ternary bubble-sort rules, documentation, and tests; confirmed expected trace and random cases via a Python simulator since `cabal build/test` could not resolve dependencies offline.
+- `cabal build` / `cabal test` attempted but blocked by missing Hackage index (network timeout); captured failures plus Ctrl-C after `cabal update` hang.
+Next:
+- Re-run `cabal update`, `cabal build`, and `cabal test` once package index becomes reachable to double-check the integrated suite.
+
 2025-09-21 08:26 UTC — Re-run binary decrement verification with cabal update
 Plan:
 - Problem: Prior verification failed because dependencies weren't fetched; need to run `cabal update` (network is available) so `cabal test` can install packages, and capture fresh evidence while adding a standing reminder about the update step/network access.
@@ -536,3 +615,4 @@ Next:
 - 2025-09-20: Empty-LHS rules can terminate cleanly when paired with a no-op guard (e.g., `| -> |;`) that short-circuits `step`; pointer rules (`1 -> .1`, `.1 -> 1.`) move a cursor without extra sentinels. Challenge every assumption and verify it via `Rewrite.trace` before declaring limits.
 - 2025-09-19: Repo contains `LICENSE` and `run-codex.sh`; AGENTS.md added for local protocols.
 - 2025-09-19: `cabal.project` enables `tests: True` for reproducible `cabal test`. Requires network to fetch tasty/hspec/QuickCheck from Hackage.
+

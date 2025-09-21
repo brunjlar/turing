@@ -172,7 +172,33 @@ The documented samples evaluate exactly as advertised:
 The accompanying QuickCheck property picks numbers up to 512, feeds them through the rules, and checks that the output matches
 `n - 1` (or the underflow message when `n = 0`).
 
-## 10. Composition Playbook
+## 10. Permutation Mechanics: Sorting Ternary Digits
+
+[`examples/ternary-sort.rules`](examples/ternary-sort.rules) shows that Rules can do more than arithmetic. The program repeatedly swaps out-of-order neighbours so any string over `0`, `1`, and `2` settles into nondecreasing order.
+
+```text
+21 -> 12;
+20 -> 02;
+10 -> 01;
+```
+
+Because the engine is deterministic and always rewrites the leftmost match, these three clauses behave exactly like a bubble sort: every swap removes one inversion, and once none remain the program halts. Here is the full trace for `210201`:
+
+```text
+step 0: 210201
+step 1: 120201
+step 2: 102201
+step 3: 102021
+step 4: 102012
+step 5: 100212
+step 6: 100122
+step 7: 010122
+step 8: 001122
+```
+
+The test suite loads the same rules, asserts this trace verbatim, and adds a QuickCheck property that generates random ternary strings (up to length six) and confirms the final state equals `sort input`. This gives you a reusable pattern for any permutation logic: specify pairwise swaps and rely on monotone progress to guarantee termination.
+
+## 11. Composition Playbook
 
 Once you trust the building blocks above, try combining them:
 
@@ -180,7 +206,7 @@ Once you trust the building blocks above, try combining them:
 - **Trace debugging:** Use `cabal run turing -- FILE --input STRING --max-steps N` to cap runaway traces while you experiment with new compositions.
 - **Property checks everywhere:** Every time you document a behaviour, add a deterministic assertion and a QuickCheck property in `test/Main.hs`. That way the docs and programs evolve together.
 
-## 11. Strategies and Tricks
+## 12. Strategies and Tricks
 
 - **Work left-to-right.** Because matching is leftmost-first, structure your rules so early clauses initialise state and later ones tidy up. Guard clauses (`| -> |;`) protect finished results from being reprocessed.
 - **Introduce markers.** Temporary symbols (`.`, `@`, `b`, `+`, `g`, etc.) turn the string into a miniature state machine. Plan your pipeline as phases and dedicate a few unique markers to each phase.
@@ -189,7 +215,7 @@ Once you trust the building blocks above, try combining them:
 - **Prove behaviour with traces.** Use `cabal run turing -- FILE --input STRING` while developing. The numbered trace quickly reveals where a pipeline stalls or loops.
 - **Document what you learn.** When you discover a new trick or marker pattern, add a short note to this tutorial and cover it with a test. Future you (and teammates) will thank you.
 
-## 12. Verifying and Iterating
+## 13. Verifying and Iterating
 
 Add new examples under `examples/` and extend `test/Main.hs` with deterministic checks (exact traces or final states) plus property tests when possible. Running `cabal test` recompiles the rules and fails fast if a documentation example goes stale.
 
@@ -208,7 +234,7 @@ When you add new behaviours:
 2. Capture the final state (or trace) in a unit test so the documentation can never drift.
 3. Note any reusable insights in `AGENTS.md` so the next change starts from a stronger baseline.
 
-## 13. What to Try Next
+## 14. What to Try Next
 
 - Implement unary addition that reuses the duplication pipeline as a subroutine.
 - Extend the binary lookup table to cover wider inputs or derive it programmatically from a helper script.
