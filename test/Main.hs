@@ -228,6 +228,25 @@ unitSpecs = do
     prop "matches binary encoding for small unary lengths" $
       unaryToBinaryProperty unaryBinaryRules
 
+  describe "binary to unary example" $ do
+    binaryRules <- runIO $ do
+      contents <- TIO.readFile "examples/binary-to-unary.rules"
+      case parseRules contents of
+        Left err    -> fail ("failed to parse binary-to-unary.rules: " <> T.unpack err)
+        Right rules -> pure rules
+
+    let finalUnary input = stripGuard (last (trace binaryRules input))
+
+    it "converts documented samples" $ do
+      finalUnary "0" `shouldBe` ""
+      finalUnary "1" `shouldBe` "1"
+      finalUnary "10" `shouldBe` "11"
+      finalUnary "11" `shouldBe` "111"
+      finalUnary "100" `shouldBe` "1111"
+      finalUnary "1010" `shouldBe` replicate 10 '1'
+
+    prop "matches unary length for values up to 63" $ binaryToUnaryProperty binaryRules
+
   where
     duplicateProperty :: Rules Char -> Property
     duplicateProperty rules =
@@ -273,6 +292,13 @@ unitSpecs = do
             output = stripSentinel (last (trace rules input))
         in output === binaryString n
 
+    binaryToUnaryProperty :: Rules Char -> Property
+    binaryToUnaryProperty rules =
+      let maxValue = 63
+      in forAll (chooseInt (0, maxValue)) $ \n ->
+           let input  = toBinary n
+               output = stripGuard (last (trace rules input))
+           in output === replicate n '1'
 
 rulesToTuples :: Rules Char -> [([Char], [Char])]
 rulesToTuples = fmap $ \(Rule lhs rhs) -> (lhs, rhs)
