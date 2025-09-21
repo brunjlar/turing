@@ -4,8 +4,66 @@
 - **Preflight**: `which git || true; git --version || true; which docker || true; docker --version || true; ssh-agent sanity check; ssh -T git@github.com || true`
 - **Verification Template**: Problem · Acceptance criteria · Steps · Evidence · Rollback (per global instructions §0).
 - **Live Notes**: Timestamped entries using Plan/Verify/Done/Next blocks (template in §13 global doc).
+- **Tutorial upkeep**: Whenever new examples or Rules strategies land, update `tutorial.md` and its tests before considering the work done.
 
 ## Live Action Notes
+2025-09-21 07:53 UTC — Merge tutorial branch and expand guide
+Plan:
+- Problem: Integrate `codex/create-readme-and-tutorial-for-rules-programming` into `main` and uplift the tutorial so it showcases the current library of Rules examples, guiding readers from basics to advanced strategies.
+- Acceptance criteria:
+  * `git merge origin/codex/create-readme-and-tutorial-for-rules-programming` completes with conflicts resolved and history preserved.
+  * Tutorial/README covers missing examples (e.g., unary duplicate, append-bar, unary multiply, unary↔binary conversions, binary increment) with accurate descriptions and cross-links.
+  * `cabal build` and `cabal test` exit 0 post-merge; tutorial changes lint (manual prose review) with no broken references.
+  * `AGENTS.md` updated with instruction to keep the tutorial in sync whenever new examples or strategies land.
+- Steps:
+  * Fetch latest remote branches, review branch diff, and stage plan for merge (dry-run if needed).
+  * Perform merge, resolve conflicts, and update tutorial/README with comprehensive walkthrough integrating newer examples and strategies.
+  * Run verification commands, collect evidence, and update docs/notes (including new maintenance instruction).
+Verify:
+- Commands: `git fetch origin`, `git status -sb`, `git merge origin/codex/create-readme-and-tutorial-for-rules-programming`, `cabal build`, `cabal test`.
+- Evidence: exit codes (0), essential log tails (<200 lines), tutorial rendered diff review checklist showing coverage of examples.
+- Rollback/Cleanup: `git merge --abort` before commit, or `git reset --hard ORIG_HEAD` plus `git clean -fd` if merge already recorded or artifacts linger.
+Done:
+- Resolved the merge conflict in `AGENTS.md`, kept the branch additions, and expanded README/tutorial coverage with unary↔binary conversions plus composition guidance.
+- Added a Mini Index reminder so every new example or strategy triggers a `tutorial.md` update and companion tests.
+- Spot-checked the refreshed tutorial snippets via the CLI to ensure the documented traces still match reality.
+
+Evidence:
+- `cabal build` (exit 0; rebuilt library, executable, and tests after the documentation updates).
+- `cabal test` (exit 0; 32 specs including unary↔binary properties passed in 0.06s).
+- `cabal run turing -- examples/unary-to-binary.rules --input 1111111111` (final step `1010#`, matching the tutorial).
+- `cabal run turing -- examples/binary-to-unary.rules --input 1010` (final state `1111111111|`, confirming the lookup section).
+Next:
+- None; ready to push merged main once review wraps.
+
+2025-09-22 07:30 UTC — Author README and tutorial
+Plan:
+- Problem: Repository lacks top-level README/tutorial documenting the Rules language and CLI usage; need comprehensive docs with tested examples.
+- Acceptance criteria:
+  * Add README.md with project overview, CLI usage instructions, and at least one verified example trace.
+  * Add tutorial.md introducing syntax/semantics, progressive examples, and problem-solving strategies; all referenced examples backed by automated tests.
+  * Existing tests plus new documentation example tests pass via cabal test (or equivalent) with evidence collected.
+  * Documentation reflects current executable behaviour and passes verification commands.
+- Steps:
+  * Inspect existing tests/examples to identify reusable traces; design additional tests if needed for documentation examples.
+  * Extend test suite to cover any new example traces introduced in docs.
+  * Draft README.md and tutorial.md content referencing tested examples.
+  * Run cabal test (and other required checks) to provide evidence; adjust docs/tests as needed.
+- Verify:
+  * Commands: `cabal test` (and additional example-specific scripts if introduced).
+  * Evidence: exit codes, salient output (<200 lines) confirming tests pass.
+- Rollback/Cleanup: Revert README.md, tutorial.md, and any test/documentation changes via git checkout; remove temporary files.
+
+Done:
+- Added README.md describing the executable, prerequisites, tested append-bar trace, and pointers to the tutorial.
+- Authored tutorial.md covering syntax, semantics, and stepwise strategies for append-bar, duplication, unary multiplication, and binary increment examples.
+- Extended `test/Main.hs` with an assertion for the full append-bar trace so the README example is verified.
+- Ran `cabal test`; all suites passed after pulling dependencies.
+Evidence:
+- `cabal test` (PASS; see log tail in command output).
+Next:
+- None; documentation and supporting tests are complete.
+
 2025-09-21 07:37 UTC — Merge codex/add-binary-to-unary-conversion-example
 Plan:
 - Problem: Sync main with the feature branch so binary-to-unary example lands in default branch without breaking build/tests or losing history.
