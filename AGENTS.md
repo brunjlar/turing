@@ -6,6 +6,58 @@
 - **Live Notes**: Timestamped entries using Plan/Verify/Done/Next blocks (template in §13 global doc).
 
 ## Live Action Notes
+2025-09-21 06:48 UTC — Address cabal update availability
+Plan:
+- Problem: Prior change skipped cabal update assuming missing network; need to demonstrate network works and ensure build/test succeed with fetched dependencies.
+- Acceptance criteria:
+  * Documented verification plan captured in Live Notes.
+  * `cabal update` completes successfully before build/test commands.
+  * `cabal build` and `cabal test` exit 0 with logs captured for evidence.
+  * Update Live Notes with results and next steps.
+- Steps:
+  * Run `cabal update` to refresh package index.
+  * Execute `cabal build` and `cabal test` now that dependencies are obtainable.
+  * Capture salient command outputs (<200 lines) for evidence bundle.
+  * Update Live Notes Done/Next sections accordingly.
+- Verify:
+  * Commands: `cabal update`, `cabal build`, `cabal test`.
+  * Evidence: exit codes, tail of outputs showing success.
+- Rollback/Cleanup: None required beyond `git clean -fd` if cabal artifacts problematic.
+
+Done:
+- `cabal update` created default config, refreshed the Hackage index, and completed successfully despite initial mirror warnings.
+- `cabal build` downloaded dependencies, built the library, executable, and tests without errors.
+- `cabal test` rebuilt the suite and all 27 specs passed.
+Evidence:
+- `cabal update` (success, index-state 2025-09-20T20:36:59Z).
+- `cabal build` (full dependency build and project compilation).
+- `cabal test` (27/27 tests passed in 0.07s).
+Next:
+- None; verification demonstrates network availability and green build/test pipeline.
+
+2025-09-21 01:36 UTC — Binary increment example
+Plan:
+- Problem: Provide a terminating rewrite system that increments binary strings (without requiring sentinels from callers) so the new example can showcase multi-phase carry propagation.
+- Acceptance criteria:
+  * `examples/binary-increment.rules` rewrites inputs like `0`, `1`, `10`, `11`, `1011101010100`, and `11111` to the binary successor, leaving a trailing `|` guard so the prefix before `|` equals `n + 1`.
+  * Automated tests load the rules, trim the trailing guard, and confirm concrete cases plus a QuickCheck property over bounded inputs.
+  * Existing suites stay green under `cabal build`/`cabal test` with the new example included in documentation/tests.
+- Steps:
+  * Prototype staged rules that map `0/1` digits to markers, propagate a carry symbol leftward, convert markers back to digits, then append a terminal `|` guard.
+  * Add deterministic tests for the provided samples and a property that checks increment behaviour on random bit strings (excluding the empty input).
+  * Run `cabal build` and `cabal test`, capturing outputs for the evidence bundle; update Live Notes when done.
+- Verify:
+  * Commands: `cabal build`, `cabal test`.
+  * Evidence: exit code 0 plus tail of test output (<200 lines).
+- Rollback/Cleanup: `git checkout -- examples/binary-increment.rules test/Main.hs AGENTS.md`.
+
+Done:
+- Added `examples/binary-increment.rules` with staged carry rules and guard ordering so Python simulation of the rewrite trace matches the expected successor (e.g., `11111 -> 100000|`).
+- Extended `test/Main.hs` with binary increment specs and a QuickCheck property that trims the guard before asserting against `toBinary (n + 1)`; helpers `stripGuard`, `endsWithBar`, and `toBinary` support the checks.
+- Verification: `python` harness over the rules confirmed the sample inputs, and after running `cabal update` (see 2025-09-21 06:48 entry) both `cabal build` and `cabal test` succeed with the fetched dependencies.
+Next:
+- None; binary increment example implemented pending upstream dependency availability for cabal commands.
+
 2025-09-20 23:37 UTC — Unary multiplication example
 Plan:
 - Problem: Need a terminating rewrite system that multiplies unary operands separated by `*`, producing `1^(a*b)` without requiring callers to append sentinels.

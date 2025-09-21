@@ -182,6 +182,30 @@ unitSpecs = do
 
     prop "produces unary products" $ multiplyProperty multiplyRules
 
+  describe "binary increment example" $ do
+    incrementRules <- runIO $ do
+      contents <- TIO.readFile "examples/binary-increment.rules"
+      case parseRules contents of
+        Left err    -> fail ("failed to parse binary-increment.rules: " <> T.unpack err)
+        Right rules -> pure rules
+
+    let finalIncrement input = last (trace incrementRules input)
+        incremented input    = stripGuard (finalIncrement input)
+
+    it "produces traces that end with the guard" $ do
+      finalIncrement "0" `shouldSatisfy` endsWithBar
+      finalIncrement "101" `shouldSatisfy` endsWithBar
+
+    it "increments specific binary samples" $ do
+      incremented "0" `shouldBe` "1"
+      incremented "1" `shouldBe` "10"
+      incremented "10" `shouldBe` "11"
+      incremented "11" `shouldBe` "100"
+      incremented "1011101010100" `shouldBe` "1011101010101"
+      incremented "11111" `shouldBe` "100000"
+
+    prop "increments canonical binary strings" $ binaryIncrementProperty incrementRules
+
   where
     duplicateProperty :: Rules Char -> Property
     duplicateProperty rules =
@@ -210,6 +234,15 @@ unitSpecs = do
             output = last (trace rules input)
         in output === replicate n '1' ++ "|"
 
+    binaryIncrementProperty :: Rules Char -> Property
+    binaryIncrementProperty rules =
+      let maxVal = 512
+      in forAll (chooseInt (0, maxVal)) $ \n ->
+        let input    = toBinary n
+            expected = toBinary (n + 1)
+            output   = stripGuard (last (trace rules input))
+        in output === expected
+
 rulesToTuples :: Rules Char -> [([Char], [Char])]
 rulesToTuples = fmap $ \(Rule lhs rhs) -> (lhs, rhs)
 
@@ -221,3 +254,20 @@ shouldContainText haystack needle
 isFailureResult :: ParserResult a -> Bool
 isFailureResult Failure{} = True
 isFailureResult _         = False
+
+stripGuard :: String -> String
+stripGuard xs = case reverse xs of
+  ('|' : rest) -> reverse rest
+  _            -> xs
+
+endsWithBar :: String -> Bool
+endsWithBar xs = not (null xs) && last xs == '|'
+
+toBinary :: Int -> String
+toBinary 0 = "0"
+toBinary n = reverse (go n)
+  where
+    go 0 = []
+    go k = let (q, r) = k `quotRem` 2
+               bit    = if r == 0 then '0' else '1'
+           in bit : go q
