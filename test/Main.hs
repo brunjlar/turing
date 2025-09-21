@@ -218,6 +218,35 @@ unitSpecs = do
 
     prop "increments canonical binary strings" $ binaryIncrementProperty incrementRules
 
+  describe "binary decrement example" $ do
+    decrementRules <- runIO $ do
+      contents <- TIO.readFile "examples/binary-decrement.rules"
+      case parseRules contents of
+        Left err    -> fail ("failed to parse binary-decrement.rules: " <> T.unpack err)
+        Right rules -> pure rules
+
+    let finalDecrement input = last (trace decrementRules input)
+        underflowMessage    = "Error: Arithmetic underflow!"
+
+    it "decrements documented samples" $ do
+      finalDecrement "1010-1" `shouldBe` "1001"
+      finalDecrement "1001-1" `shouldBe` "1000"
+      finalDecrement "1000-1" `shouldBe` "111"
+      finalDecrement "11001-1" `shouldBe` "11000"
+      finalDecrement "1-1" `shouldBe` "0"
+
+    it "signals arithmetic underflow" $ do
+      finalDecrement "0-1" `shouldBe` underflowMessage
+
+    prop "decrements canonical binary numerals" $
+      let maxVal = 512
+      in forAll (chooseInt (0, maxVal)) $ \n ->
+           let input  = toBinary n ++ "-1"
+               output = finalDecrement input
+           in if n == 0
+                then output === underflowMessage
+                else output === toBinary (n - 1)
+
   describe "unary to binary example" $ do
     unaryBinaryRules <- runIO $ do
       contents <- TIO.readFile "examples/unary-to-binary.rules"
