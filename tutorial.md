@@ -147,7 +147,29 @@ You can combine this with the previous section to build round-trips. For example
 
 The property test picks random inputs up to 512 and checks that stripping the guard reproduces `n + 1` in binary. Chaining this example after the unary→binary conversion and before the binary→unary lookup yields a complete "add one" pipeline on unary inputs.
 
-## 9. Composition Playbook
+## 9. Repeated-Increment Addition in Binary
+
+[examples/binary-addition.rules](examples/binary-addition.rules) adds two binary numerals without any lookup tables. Instead of rippling a carry marker across the whole number, the program repeatedly **decrements** the right operand and **increments** the left operand. A sentinel `s` is threaded through the left edge so the increment step can append a new most-significant bit when necessary.
+
+- **Setup:** `+ -> s#p;` inserts the sentinel `s` and a loop boundary `#`. A cursor (`p0 -> 0p;`, `p1 -> 1p;`, `p -> @$;`) walks to the end, appending the `$` guard and positioning the loop marker `@` between the operands.
+- **Loop:** As long as the right operand is not the canonical `0`, the rules `@1 -> 1b; …; b$ -> -$;` subtract one from it. The borrow sweep leaves behind a marker `z` which hands control to the left side via `#z -> c#;`. The increment phase flips trailing `1`s to `0`s (`1c -> c0;`) until it finds a `0` (`0c -> u1;`) or the sentinel (`sc -> s1u;`), then pushes the completion marker `u` back to the boundary (`u# -> #@;`).
+- **Termination:** When the right operand reaches `0`, `#@0$ -> ;` removes the boundary and guard. The sentinel `s` remains at the front of the final string—drop it to read the binary sum.
+
+Representative rewrites (showing the raw machine output with the leading sentinel):
+
+```
+0+0   ⇒ s0
+1+1   ⇒ s10
+111+11 ⇒ s1010
+```
+
+To run the program manually and inspect the trace, use:
+
+```bash
+cabal run turing -- examples/binary-addition.rules --input 111+11 --max-steps 200
+```
+
+## 10. Composition Playbook
 
 Once you trust the building blocks above, try combining them:
 
@@ -155,7 +177,7 @@ Once you trust the building blocks above, try combining them:
 - **Trace debugging:** Use `cabal run turing -- FILE --input STRING --max-steps N` to cap runaway traces while you experiment with new compositions.
 - **Property checks everywhere:** Every time you document a behaviour, add a deterministic assertion and a QuickCheck property in `test/Main.hs`. That way the docs and programs evolve together.
 
-## 10. Strategies and Tricks
+## 11. Strategies and Tricks
 
 - **Work left-to-right.** Because matching is leftmost-first, structure your rules so early clauses initialise state and later ones tidy up. Guard clauses (`| -> |;`) protect finished results from being reprocessed.
 - **Introduce markers.** Temporary symbols (`.`, `@`, `b`, `+`, `g`, etc.) turn the string into a miniature state machine. Plan your pipeline as phases and dedicate a few unique markers to each phase.
@@ -164,7 +186,7 @@ Once you trust the building blocks above, try combining them:
 - **Prove behaviour with traces.** Use `cabal run turing -- FILE --input STRING` while developing. The numbered trace quickly reveals where a pipeline stalls or loops.
 - **Document what you learn.** When you discover a new trick or marker pattern, add a short note to this tutorial and cover it with a test. Future you (and teammates) will thank you.
 
-## 11. Verifying and Iterating
+## 12. Verifying and Iterating
 
 Add new examples under `examples/` and extend `test/Main.hs` with deterministic checks (exact traces or final states) plus property tests when possible. Running `cabal test` recompiles the rules and fails fast if a documentation example goes stale.
 
@@ -183,7 +205,7 @@ When you add new behaviours:
 2. Capture the final state (or trace) in a unit test so the documentation can never drift.
 3. Note any reusable insights in `AGENTS.md` so the next change starts from a stronger baseline.
 
-## 12. What to Try Next
+## 13. What to Try Next
 
 - Implement unary addition that reuses the duplication pipeline as a subroutine.
 - Extend the binary lookup table to cover wider inputs or derive it programmatically from a helper script.

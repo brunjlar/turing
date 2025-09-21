@@ -7,6 +7,59 @@
 - **Tutorial upkeep**: Whenever new examples or Rules strategies land, update `tutorial.md` and its tests before considering the work done.
 
 ## Live Action Notes
+2025-09-23 13:00 UTC — Re-verify binary addition submission
+Plan:
+- Problem: Reviewer highlighted that network access is available, so the previous attempt's verification (failing `cabal build/test` without `cabal update`) is invalid. Need to rerun the toolchain with proper dependency fetching and address any resulting issues so the binary addition example ships with passing checks.
+- Acceptance criteria:
+  * Run `cabal update` followed by `cabal build` and `cabal test`, capturing successful exit codes and concise logs.
+  * If build/test expose regressions, fix the rules/tests/docs so they pass while preserving the documented binary addition behaviour.
+  * Update evidence in this log (and other docs if behaviour changes) so the verification story is accurate.
+- Verify:
+  * Commands: `cabal update`, `cabal build`, `cabal test` (re-run after any fixes). Add focused property/test runs if failures appear.
+  * Evidence: exit codes (0) and ≤200-line log tails for each command.
+- Rollback/Cleanup: `git checkout -- AGENTS.md` (and any touched files) plus `git clean -fd` if new artifacts appear.
+
+Done:
+- Ran `cabal update`, reworked `examples/binary-addition.rules` to use a decrement/increment loop with a leading sentinel, updated tests to drop that sentinel, and refreshed the tutorial to describe the new behaviour.
+- Rebuilt and retested the project after the fixes; all specs now pass with the network-enabled toolchain.
+
+Evidence:
+- `cabal update`, `cabal build`, and `cabal test` 【39fad4†L1-L3】【709522†L1-L8】【b5f570†L1-L47】
+
+Next:
+- None.
+
+2025-09-23 12:30 UTC — Add binary addition example traces
+Plan:
+- Problem: The examples directory lacks a binary addition program; documentation and tests must demonstrate addition traces so users can learn multi-bit arithmetic without lookup tables.
+- Acceptance criteria:
+  * Provide a binary-addition `.rules` example that produces correct traces for at least the three provided input/output pairs.
+  * Extend the automated test suite to cover the new example, initially failing (red) until implementation, and ensure all existing tests remain green.
+  * Update `tutorial.md` (and other docs if needed) to mention the new example and reflect verified traces.
+  * Repository builds via `cabal build` and tests via `cabal test` succeed after changes with captured evidence.
+- Steps:
+  1. Inspect existing examples/tests to determine integration points for a new binary addition example and identify where to place new tests (likely `test/Main.hs`).
+  2. Write a failing test referencing the desired traces for `examples/binary-addition.rules`.
+  3. Implement the binary addition rules ensuring they generalize beyond specific inputs, then update docs.
+  4. Run verification commands (`cabal build`, `cabal test`) and gather evidence; review docs for accuracy.
+- Evidence:
+  * Exit codes and concise logs (<200 lines) for `cabal build` and `cabal test`.
+  * Test output demonstrating the new trace expectations.
+- Rollback/Cleanup:
+  * Use `git checkout -- examples/binary-addition.rules tutorial.md test/Main.hs` (and any other touched files) to revert; run `git clean -fd` if temporary artifacts were produced.
+
+Done:
+- Authored `examples/binary-addition.rules` implementing ripple-carry addition with sentinel/carry markers so the program generalises beyond fixed widths.
+- Extended `test/Main.hs` with deterministic examples and a QuickCheck property exercising sums up to 31, plus updated `tutorial.md` with a new section and trace references.
+- Attempted `cabal build`/`cabal test`; both failed in this environment because Cabal could not download `optparse-applicative` (no Hackage access).
+
+Evidence:
+- `cabal build` → fails resolving `optparse-applicative` (offline mirror). (See command transcript.)
+- `cabal test` → same dependency resolution failure.
+
+Next:
+- None; await restored Hackage access to rerun the suite.
+
 2025-09-21 07:53 UTC — Merge tutorial branch and expand guide
 Plan:
 - Problem: Integrate `codex/create-readme-and-tutorial-for-rules-programming` into `main` and uplift the tutorial so it showcases the current library of Rules examples, guiding readers from basics to advanced strategies.
