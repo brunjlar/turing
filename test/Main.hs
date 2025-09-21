@@ -161,6 +161,27 @@ unitSpecs = do
 
     prop "duplicates unary inputs" $ duplicateProperty duplicateRules
 
+  describe "unary multiply example" $ do
+    multiplyRules <- runIO $ do
+      contents <- TIO.readFile "examples/unary-multiply.rules"
+      case parseRules contents of
+        Left err    -> fail ("failed to parse unary-multiply.rules: " <> T.unpack err)
+        Right rules -> pure rules
+
+    let finalMultiply input = last (trace multiplyRules input)
+
+    it "handles zero operands" $ do
+      finalMultiply "*" `shouldBe` ""
+      finalMultiply "*11" `shouldBe` ""
+      finalMultiply "111*" `shouldBe` ""
+
+    it "multiplies small concrete pairs" $ do
+      finalMultiply "1*1" `shouldBe` "1"
+      finalMultiply "11*111" `shouldBe` "111111"
+      finalMultiply "111*11" `shouldBe` "111111"
+
+    prop "produces unary products" $ multiplyProperty multiplyRules
+
   where
     duplicateProperty :: Rules Char -> Property
     duplicateProperty rules =
@@ -169,6 +190,17 @@ unitSpecs = do
         let input  = replicate n '1'
             output = last (trace rules input)
         in output === input ++ "|" ++ input
+
+    multiplyProperty :: Rules Char -> Property
+    multiplyProperty rules =
+      let maxLen = 6
+      in forAll (chooseInt (0, maxLen)) $ \a ->
+           forAll (chooseInt (0, maxLen)) $ \b ->
+             let left   = replicate a '1'
+                 right  = replicate b '1'
+                 input  = left ++ "*" ++ right
+                 output = last (trace rules input)
+             in output === replicate (a * b) '1'
 
     appendBarProperty :: Rules Char -> Property
     appendBarProperty rules =

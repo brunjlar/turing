@@ -1,0 +1,43 @@
+-- Unary multiplication on strings of '1's separated by '*'.
+-- The pipeline consumes the left operand one unit at a time, appending a
+-- copy of the right operand to the output while restoring markers so the
+-- next pass sees the original multiplicand.
+
+-- Stage 0: replace '*' with '^' and append a trailing '|'.
+* -> ^#;
+#1 -> 1#;
+# -> |;
+
+-- Stage 1: when a left '1' touches '^', move into active state '@x'.
+1^ -> @x;
+
+-- Stage 2: sweep the right operand, marking each '1' as 'r'.
+x1 -> rx;
+
+-- Once the sweep hits the separator, switch to the backtracking pointer.
+x| -> b|;
+
+-- Move the pointer left to find the next marked cell.
+1b -> b1;
+
+-- Stage 3: restore the marked cell and start shuttling back to the bar.
+rb -> c1;
+c1 -> 1c;
+c| -> d|;
+
+-- Append a fresh '1' to the output while keeping the pointer information.
+d| -> |e1;
+|e -> b|;
+
+-- When the pointer returns to '^', restore the idle star.
+@b -> ^;
+
+-- Clean up any stray pointer that leaks to the output side.
+e ->;
+
+-- Stage 4: once all left '1's are consumed, collapse the remaining scaffold.
+^ -> z;
+z1 -> z;
+z| -> |;
+| ->;
+z ->;

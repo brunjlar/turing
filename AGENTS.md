@@ -6,6 +6,29 @@
 - **Live Notes**: Timestamped entries using Plan/Verify/Done/Next blocks (template in §13 global doc).
 
 ## Live Action Notes
+2025-09-20 23:37 UTC — Unary multiplication example
+Plan:
+- Problem: Need a terminating rewrite system that multiplies unary operands separated by `*`, producing `1^(a*b)` without requiring callers to append sentinels.
+- Acceptance criteria:
+  * `examples/unary-multiply.rules` maps inputs like `*`, `*11`, `111*`, `1*1`, and `11*111` to the expected unary product.
+  * Property-based tests generate small operand pairs (e.g., up to length 6) and confirm the final state equals `replicate (a*b) '1'`.
+  * Rules append their own sentinel internally (no manual `|`/`#` prep by tests).
+- Steps:
+  * Translate the simulated pointer algorithm (symbols `^,@,x,r,b,c,d,e,z,#`) into the `.rules` syntax with clear comments on each stage.
+  * Extend `test/Main.hs` with deterministic and QuickCheck coverage for multiplication, mirroring earlier example structure.
+  * Run `cabal build`, `cabal test`, and spot-check with `cabal run turing -- examples/unary-multiply.rules --input 11*111` to capture the trace.
+- Verify:
+  * Commands: `cabal build`, `cabal test`, `cabal run turing -- examples/unary-multiply.rules --input 11*111`.
+  * Evidence: exit codes 0, final trace ends at `111111`, property summary covers sampled inputs.
+- Rollback: `git checkout -- examples/unary-multiply.rules test/Main.hs AGENTS.md`.
+
+Done:
+- Added `examples/unary-multiply.rules` implementing the staged `^/@/x/r/...` pointer algorithm so the sentinel is appended automatically and zero edges terminate cleanly.
+- Extended `test/Main.hs` with deterministic cases and a QuickCheck property over operand pairs up to length six; all suites green under `cabal test`.
+- Manual trace (`cabal run ... --input 11*111`) now ends at `111111` with no guard required.
+Next:
+- None; unary multiplication example is verified.
+
 2025-09-20 23:00 UTC — Remove explicit # requirement
 Plan:
 - Problem: Duplicate rules currently expect callers to append '#'; need self-contained example that appends its own sentinel before duplicating.
@@ -226,6 +249,7 @@ Next:
 - If network access becomes available, run `cabal update` then `cabal test` to install tasty/hspec/QuickCheck packages.
 
 ## Scratchpad
+- 2025-09-20: Multiplication rules reuse the `* -> ^#` trick to append a separator exactly once, then guard subsequent passes by working in the `@` active state before restoring `^`. Marking the right operand with `r` and shuttling via `b/c/d/e` proved reliable for zero-length edges after the simulation confirmed termination up to 4x4 inputs.
 - 2025-09-20: Unary duplication terminates cleanly when staging with a trailing '#': sweep `1# -> #1b`, reorder with `b1 -> 1b` and `# -> @; @1 -> 1@`, then reveal via `@ -> |; b -> 1`. Tests append/remove the sentinel automatically.
 - 2025-09-20: Apparent impossibility came from assuming the dot cursor needed a fresh sentinel; existing rules already provide a neutral guard. Lesson: test for termination by simulating `Rewrite.trace` rather than reasoning purely about rule forms.
 - 2025-09-20: Empty-LHS rules can terminate cleanly when paired with a no-op guard (e.g., `| -> |;`) that short-circuits `step`; pointer rules (`1 -> .1`, `.1 -> 1.`) move a cursor without extra sentinels. Challenge every assumption and verify it via `Rewrite.trace` before declaring limits.
