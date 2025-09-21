@@ -1,0 +1,27 @@
+-- Decrement a binary numeral terminated with "-1".
+-- The program converts the trailing "-1" into a borrow cursor `p` and a
+-- sentinel `#` that bubbles to the front. The cursor then walks left,
+-- flipping zeros to ones until it finds a one to turn into zero. If the
+-- borrow reaches the sentinel, the input was zero and the program emits the
+-- documented underflow message.
+
+-- Stage 0: convert the suffix into a borrow cursor plus sentinel.
+-1 -> #p;
+
+-- Stage 1: move the sentinel to the left edge.
+1# -> #1;
+0# -> #0;
+
+-- Stage 2: propagate the borrow from right to left.
+0p -> p1;
+1p -> 0@;
+
+-- Underflow: cursor touched the sentinel without finding a `1`.
+#p1 -> Error:\sArithmetic\sunderflow!;
+Error:\sArithmetic\sunderflow!1 -> Error:\sArithmetic\sunderflow!;
+
+-- Stage 3: clean up sentinels and leading zeros.
+@ ->;
+#01 -> #1;
+#1 -> 1;
+#0 -> 0;

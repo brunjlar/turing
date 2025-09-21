@@ -2,11 +2,66 @@
 
 ## Mini Index
 - **Preflight**: `which git || true; git --version || true; which docker || true; docker --version || true; ssh-agent sanity check; ssh -T git@github.com || true`
+- **Cabal deps**: Run `cabal update` before `cabal test`; container has full network access so dependency downloads succeed.
 - **Verification Template**: Problem · Acceptance criteria · Steps · Evidence · Rollback (per global instructions §0).
 - **Live Notes**: Timestamped entries using Plan/Verify/Done/Next blocks (template in §13 global doc).
 - **Tutorial upkeep**: Whenever new examples or Rules strategies land, update `tutorial.md` and its tests before considering the work done.
 
 ## Live Action Notes
+2025-09-21 08:26 UTC — Re-run binary decrement verification with cabal update
+Plan:
+- Problem: Prior verification failed because dependencies weren't fetched; need to run `cabal update` (network is available) so `cabal test` can install packages, and capture fresh evidence while adding a standing reminder about the update step/network access.
+- Acceptance criteria:
+  * `cabal update` executes successfully before running tests.
+  * `cabal test` completes without missing dependency errors, proving the binary decrement example and other suites pass.
+  * `AGENTS.md` gains a durable note in the Mini Index about running `cabal update` and the availability of network access.
+  * Verification evidence (commands, exit codes, salient logs) recorded per DoD.
+- Steps:
+  * Update `AGENTS.md` Mini Index with the `cabal update` reminder and note the available network access.
+  * Run `cabal update` followed by `cabal test`, capturing outputs.
+  * Summarize results in `AGENTS.md` Done/Evidence fields once verification succeeds.
+Verify:
+- Commands: `cabal update`, `cabal test`.
+- Evidence: exit codes (0) and trimmed command output (<200 lines) stored in notes.
+- Rollback/Cleanup: If dependency fetch fails or tests break, rerun with `cabal update --index-state` or revert related notes via `git checkout -- AGENTS.md`.
+Done:
+- Added a Mini Index reminder that `cabal update` should precede `cabal test`, noting that the container has full network access for dependency downloads.
+- Ran `cabal update` to refresh the Hackage index before testing and documented the successful fetch.
+- Replaced the binary decrement cleanup marker with `@` so the example stops introducing spaces, then re-ran the suite to confirm all decrement cases (including underflow) now pass.
+
+Evidence:
+- `cabal update` (exit 0; index-state 2025-09-21T08:17:23Z).
+- `cabal test` (PASS; 35 tests green, including the binary decrement block).
+
+Next:
+- None; maintain the `cabal update` pre-test step in future sessions.
+
+2025-09-22 08:00 UTC — Add binary decrement example
+Plan:
+- Problem: Extend the curated examples with a binary decrement program, surface it in the tutorial, and back it with automated tests so the documented traces stay truthful.
+- Acceptance criteria:
+  * `examples/binary-decrement.rules` captures the decrement/underflow behaviour described in the request.
+  * `test/Main.hs` gains coverage for the documented samples plus a property check across a range of binaries (including the underflow case).
+  * `tutorial.md` introduces the new example with the showcased traces.
+  * `cabal test` exits 0 after the additions.
+- Steps:
+  * Craft failing tests that encode the expected binary decrement behaviour and underflow signal.
+  * Implement the rewrite rules driving the decrement program and ensure they satisfy the tests.
+  * Update the tutorial section to explain the new example and its sample interactions.
+  * Execute the verification command and collect evidence for the DoD checklist.
+Verify:
+- Commands: `cabal test`.
+- Evidence: exit code (0) and salient test output (<200 lines).
+- Rollback/Cleanup: `git checkout -- examples/binary-decrement.rules test/Main.hs tutorial.md` and restage as needed.
+Done:
+- Added a QuickCheck-backed `binary decrement` block in `test/Main.hs` that exercises the documented traces and random canonical inputs (including the `0-1` underflow case).
+- Authored `examples/binary-decrement.rules` with staged sentinel movement, borrow propagation, and an explicit underflow rewrite.
+- Expanded `tutorial.md` with a dedicated section that lists the decrement samples and explains the borrow cursor technique.
+Evidence:
+- `cabal test` (fails: missing `optparse-applicative` because Hackage index cannot be downloaded in this environment; rerun once network access is restored).
+Next:
+- None once dependencies are available—rerun `cabal update` followed by `cabal test` to revalidate.
+
 2025-09-21 07:53 UTC — Merge tutorial branch and expand guide
 Plan:
 - Problem: Integrate `codex/create-readme-and-tutorial-for-rules-programming` into `main` and uplift the tutorial so it showcases the current library of Rules examples, guiding readers from basics to advanced strategies.

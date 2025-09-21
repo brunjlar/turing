@@ -147,7 +147,32 @@ You can combine this with the previous section to build round-trips. For example
 
 The property test picks random inputs up to 512 and checks that stripping the guard reproduces `n + 1` in binary. Chaining this example after the unary→binary conversion and before the binary→unary lookup yields a complete "add one" pipeline on unary inputs.
 
-## 9. Composition Playbook
+## 9. Borrowing Back: Decrementing Binary
+
+[`examples/binary-decrement.rules`](examples/binary-decrement.rules) handles the opposite operation: given a canonical binary
+numeral followed by `-1`, it subtracts one, trims any leading zeros that appear, and reports underflow for `0-1`.
+
+- **Borrow cursor:** The suffix `-1` becomes a cursor `p` that walks left while a sentinel `#` bubbles to the front.
+- **Propagation:** Each `0` before the cursor flips to `1` as the borrow moves left. Encountering a `1` settles the borrow by
+  turning it into `0` and leaving behind a cleanup marker `@` that the final stage erases.
+- **Underflow guard:** If the cursor touches the sentinel, the program rewrites the entire string to the explicit error message
+  `Error: Arithmetic underflow!`.
+
+The documented samples evaluate exactly as advertised:
+
+```text
+1010-1  -> 1001
+1001-1  -> 1000
+1000-1  -> 111
+11001-1 -> 11000
+1-1     -> 0
+0-1     -> Error: Arithmetic underflow!
+```
+
+The accompanying QuickCheck property picks numbers up to 512, feeds them through the rules, and checks that the output matches
+`n - 1` (or the underflow message when `n = 0`).
+
+## 10. Composition Playbook
 
 Once you trust the building blocks above, try combining them:
 
@@ -155,7 +180,7 @@ Once you trust the building blocks above, try combining them:
 - **Trace debugging:** Use `cabal run turing -- FILE --input STRING --max-steps N` to cap runaway traces while you experiment with new compositions.
 - **Property checks everywhere:** Every time you document a behaviour, add a deterministic assertion and a QuickCheck property in `test/Main.hs`. That way the docs and programs evolve together.
 
-## 10. Strategies and Tricks
+## 11. Strategies and Tricks
 
 - **Work left-to-right.** Because matching is leftmost-first, structure your rules so early clauses initialise state and later ones tidy up. Guard clauses (`| -> |;`) protect finished results from being reprocessed.
 - **Introduce markers.** Temporary symbols (`.`, `@`, `b`, `+`, `g`, etc.) turn the string into a miniature state machine. Plan your pipeline as phases and dedicate a few unique markers to each phase.
@@ -164,7 +189,7 @@ Once you trust the building blocks above, try combining them:
 - **Prove behaviour with traces.** Use `cabal run turing -- FILE --input STRING` while developing. The numbered trace quickly reveals where a pipeline stalls or loops.
 - **Document what you learn.** When you discover a new trick or marker pattern, add a short note to this tutorial and cover it with a test. Future you (and teammates) will thank you.
 
-## 11. Verifying and Iterating
+## 12. Verifying and Iterating
 
 Add new examples under `examples/` and extend `test/Main.hs` with deterministic checks (exact traces or final states) plus property tests when possible. Running `cabal test` recompiles the rules and fails fast if a documentation example goes stale.
 
@@ -183,7 +208,7 @@ When you add new behaviours:
 2. Capture the final state (or trace) in a unit test so the documentation can never drift.
 3. Note any reusable insights in `AGENTS.md` so the next change starts from a stronger baseline.
 
-## 12. What to Try Next
+## 13. What to Try Next
 
 - Implement unary addition that reuses the duplication pipeline as a subroutine.
 - Extend the binary lookup table to cover wider inputs or derive it programmatically from a helper script.
