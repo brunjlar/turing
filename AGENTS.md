@@ -6,6 +6,51 @@
 - **Live Notes**: Timestamped entries using Plan/Verify/Done/Next blocks (template in §13 global doc).
 
 ## Live Action Notes
+2025-09-21 01:10 UTC — Address Cabal update gap
+Plan:
+- Problem: Prior verification attempts for the unary-to-binary example failed because external dependencies were unavailable; reviewer noted I skipped `cabal update` despite network access.
+- Acceptance criteria: Run `cabal update` to refresh package indices, then successfully execute `cabal build`, `cabal test`, and a CLI smoke test for `examples/unary-to-binary.rules` capturing evidence of success.
+- Steps: Ensure clean working tree; run `cabal update`; rebuild and test; run the CLI command; collect outputs for evidence; note any follow-up required.
+Verify:
+- Commands: `cabal update`, `cabal build`, `cabal test`, `cabal run turing -- examples/unary-to-binary.rules --input 1111111111`.
+- Evidence: Exit codes (0), concise tail logs (≤200 lines) showing successful completion and final trace output.
+Rollback/Cleanup: If dependency refresh causes issues, restore `dist-newstyle` and revert changes with `git clean -fd` and `git checkout -- .`.
+Done:
+- `cabal update` initialized the default config and refreshed the index to `2025-09-20T20:36:59Z`, despite an initial mirror lookup timeout.
+- `cabal build` and `cabal test` both completed after downloading dependencies; the unary-to-binary unit/property specs now pass with the guard-enhanced rules.
+- `cabal run turing -- examples/unary-to-binary.rules --input 1111111111` terminates at `1010#`, matching the documented example.
+Evidence:
+- `cabal update` 【08d02f†L1-L3】
+- `cabal build` 【5f1371†L1-L4】【e1f3fd†L1-L1】
+- `cabal test` 【5d7d11†L1-L37】
+- `cabal run … --input 1111111111` 【e80602†L1-L87】
+Next:
+- None; unary-to-binary example verified with refreshed dependencies.
+
+2025-09-21 00:30 UTC — Unary to binary example
+Plan:
+- Problem: Provide a terminating rewrite-system example that converts unary inputs (`"1"^n`) into their binary representation without manual sentinels, covering the cases requested by the user and ensuring the engine keeps working end-to-end.
+  * `examples/unary-to-binary.rules` parses and rewrites unary strings so that the final trace string (after dropping any trailing `#` sentinel) equals the standard binary encoding (e.g., `"" -> "0"`, `"1111" -> "100"`).
+  * Automated tests cover the provided concrete mappings and a QuickCheck property for unary lengths up to 10, comparing against a reference binary conversion helper.
+  * `cabal build`, `cabal test`, and a CLI smoke check (e.g., `cabal run turing -- examples/unary-to-binary.rules --input 1111111111`) succeed.
+- Steps:
+  * Add failing tests in `test/Main.hs` that load the new example, assert the enumerated conversions, and define a property using the helper.
+  * Implement `examples/unary-to-binary.rules` with staged comments: append `|0#`, consume unary `1`s by repeatedly incrementing the binary suffix, propagate carries, and clean up sentinels.
+  * Create a small helper in the test suite to render expected binary strings and ensure docs/notes are updated.
+  * Run the verification commands and capture evidence for the acceptance criteria.
+- Verify:
+  * Commands: `cabal build`, `cabal test`, `cabal run turing -- examples/unary-to-binary.rules --input 1111111111`.
+  * Evidence: exit code 0 for each command plus trace tail (≤200 lines) showing terminal state `step ...: 1010` for the CLI check.
+- Rollback/Cleanup: `git checkout -- examples/unary-to-binary.rules test/Main.hs AGENTS.md`.
+
+Done:
+- Added QuickCheck + deterministic coverage for the unary-to-binary example, trimming the trailing `#` guard before asserting results, and introduced a `binaryString` helper in `test/Main.hs`.
+- Implemented `examples/unary-to-binary.rules` with staged increment/carry logic that leaves the final `#` sentinel in place for the guard.
+- Attempted `cabal build`, `cabal test`, and `cabal run turing -- examples/unary-to-binary.rules --input 1111111111`; each aborts with `[Cabal-7107]` because the environment cannot download `optparse-applicative` (mirrors unreachable).
+
+Next:
+- None; await network access or vendored dependencies to rerun Cabal commands successfully.
+
 2025-09-20 23:37 UTC — Unary multiplication example
 Plan:
 - Problem: Need a terminating rewrite system that multiplies unary operands separated by `*`, producing `1^(a*b)` without requiring callers to append sentinels.

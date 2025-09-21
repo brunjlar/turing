@@ -8,9 +8,11 @@ import           Test.Hspec.QuickCheck (prop)
 import           Test.Tasty       (defaultMain, testGroup)
 import           Test.Tasty.Hspec (testSpec)
 
+import           Data.Char        (intToDigit)
 import           Data.Text        (Text)
 import qualified Data.Text        as T
 import qualified Data.Text.IO     as TIO
+import           Numeric          (showIntAtBase)
 
 import           Rewrite          (Rule (..), Rules, trace)
 import           Rewrite.Parser   (parseRules)
@@ -182,6 +184,26 @@ unitSpecs = do
 
     prop "produces unary products" $ multiplyProperty multiplyRules
 
+  describe "unary to binary example" $ do
+    unaryBinaryRules <- runIO $ do
+      contents <- TIO.readFile "examples/unary-to-binary.rules"
+      case parseRules contents of
+        Left err    -> fail ("failed to parse unary-to-binary.rules: " <> T.unpack err)
+        Right rules -> pure rules
+
+    let finalBinary input = stripSentinel (last (trace unaryBinaryRules input))
+
+    it "converts the documented cases" $ do
+      finalBinary "" `shouldBe` "0"
+      finalBinary "1" `shouldBe` "1"
+      finalBinary "11" `shouldBe` "10"
+      finalBinary "111" `shouldBe` "11"
+      finalBinary "1111" `shouldBe` "100"
+      finalBinary "1111111111" `shouldBe` "1010"
+
+    prop "matches binary encoding for small unary lengths" $
+      unaryToBinaryProperty unaryBinaryRules
+
   where
     duplicateProperty :: Rules Char -> Property
     duplicateProperty rules =
@@ -210,6 +232,14 @@ unitSpecs = do
             output = last (trace rules input)
         in output === replicate n '1' ++ "|"
 
+    unaryToBinaryProperty :: Rules Char -> Property
+    unaryToBinaryProperty rules =
+      let maxLen = 10
+      in forAll (chooseInt (0, maxLen)) $ \n ->
+        let input  = replicate n '1'
+            output = stripSentinel (last (trace rules input))
+        in output === binaryString n
+
 rulesToTuples :: Rules Char -> [([Char], [Char])]
 rulesToTuples = fmap $ \(Rule lhs rhs) -> (lhs, rhs)
 
@@ -221,3 +251,11 @@ shouldContainText haystack needle
 isFailureResult :: ParserResult a -> Bool
 isFailureResult Failure{} = True
 isFailureResult _         = False
+
+binaryString :: Int -> String
+binaryString n
+  | n == 0    = "0"
+  | otherwise = showIntAtBase 2 intToDigit n ""
+
+stripSentinel :: String -> String
+stripSentinel = takeWhile (/= '#')
