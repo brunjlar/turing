@@ -196,6 +196,25 @@ unitSpecs = do
 
     prop "produces unary products" $ multiplyProperty multiplyRules
 
+  describe "unary compare example" $ do
+    compareRules <- runIO $ do
+      contents <- TIO.readFile "examples/unary-compare.rules"
+      case parseRules contents of
+        Left err    -> fail ("failed to parse unary-compare.rules: " <> T.unpack err)
+        Right rules -> pure rules
+
+    let finalCompare input = last (trace compareRules input)
+
+    it "compares documented samples" $ do
+      finalCompare "11?111" `shouldBe` "<"
+      finalCompare "1111?11" `shouldBe` ">"
+      finalCompare "1?1" `shouldBe` "="
+      finalCompare "?" `shouldBe` "="
+      finalCompare "?11111" `shouldBe` "<"
+      finalCompare "11?" `shouldBe` ">"
+
+    prop "orders unary pairs" $ unaryCompareProperty compareRules
+
   describe "binary increment example" $ do
     incrementRules <- runIO $ do
       contents <- TIO.readFile "examples/binary-increment.rules"
@@ -351,6 +370,21 @@ unitSpecs = do
                  input  = left ++ "*" ++ right
                  output = last (trace rules input)
              in output === replicate (a * b) '1'
+
+    unaryCompareProperty :: Rules Char -> Property
+    unaryCompareProperty rules =
+      let maxLen = 8
+      in forAll (chooseInt (0, maxLen)) $ \a ->
+           forAll (chooseInt (0, maxLen)) $ \b ->
+             let left    = replicate a '1'
+                 right   = replicate b '1'
+                 input   = left ++ "?" ++ right
+                 output  = last (trace rules input)
+                 expected = case compare a b of
+                              LT -> "<"
+                              EQ -> "="
+                              GT -> ">"
+             in output === expected
 
     appendBarProperty :: Rules Char -> Property
     appendBarProperty rules =

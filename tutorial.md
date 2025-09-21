@@ -256,7 +256,30 @@ When you add new behaviours:
 2. Capture the final state (or trace) in a unit test so the documentation can never drift.
 3. Note any reusable insights in `AGENTS.md` so the next change starts from a stronger baseline.
 
-## 15. What to Try Next
+## 15. Comparing Unary Numbers
+
+[`examples/unary-compare.rules`](examples/unary-compare.rules) decides whether the unary count on the left of `?` is less than, equal to, or greater than the count on the right. The program repeatedly cancels matching digits via `1?1 -> ?;`. When one side runs out first, the surrounding cleanup rules collapse the residue into `<` or `>`; if both sides empty simultaneously, `? -> =;` seals the result.
+
+Representative rewrites (matching the automated tests):
+
+```text
+"11?111"  ~> "<"  (2 < 3)
+"1111?11" ~> ">" (4 > 2)
+"1?1"     ~> "="  (1 = 1)
+"?"       ~> "="  (0 = 0)
+"?11111"  ~> "<"  (0 < 5)
+"11?"     ~> ">" (2 > 0)
+```
+
+To experiment interactively, run:
+
+```bash
+cabal run turing -- examples/unary-compare.rules --input 111?11
+```
+
+The test suite also includes a QuickCheck property that generates random unary pairs (up to length eight) and confirms the output matches `compare (length left) (length right)`.
+
+## 16. What to Try Next
 
 - Implement unary addition that reuses the duplication pipeline as a subroutine.
 - Extend the binary lookup table to cover wider inputs or derive it programmatically from a helper script.
