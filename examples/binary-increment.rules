@@ -1,0 +1,23 @@
+-- Increment a binary string without requiring external sentinels.
+-- The rules append a carry marker '+', sweep it left to realise the
+-- increment, and finish by bubbling a trailing '|' guard so the prefix
+-- before the bar is the numeric successor.
+
+-- Stage 1: resolve the carry and bubble the guard to the far right.
+0+ -> 1|;
+1+ -> +0;
++0 -> 10|;
++ -> 1|;
+|0 -> 0|;
+|1 -> 1|;
+
+-- Guard: once the bar is present, halt before the setup rules can restart.
+| -> |;
+
+-- Stage 0: append a trailing '+' using a cursor that walks to the end.
+.1 -> 1.;
+.0 -> 0.;
+. -> +;
+1 -> .1;
+0 -> .0;
+-> +;
