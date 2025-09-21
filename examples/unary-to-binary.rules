@@ -1,0 +1,41 @@
+-- Convert unary strings of '1's into binary digits. The rules append a
+-- binary workspace `|0#` and repeatedly increment the suffix while
+-- consuming the unary prefix. The final state retains the trailing `#`
+-- sentinel (tests strip it when asserting the binary encoding).
+
+-- Replace the consumed 1 with a guard `g` so no further unary digits
+-- trigger until the increment finishes.
+1| -> g|a;
+
+-- Stage 2: drift the active marker to the end of the binary suffix.
+a0 -> 0a;
+a1 -> 1a;
+
+-- Stage 3: swap the marker for a carry indicator once it reaches `#`.
+a# -> b#;
+
+-- Stage 4: propagate the carry back toward the front.
+0b -> 1;
+1b -> b0;
+|b -> |1;
+
+-- Guard cleanup: once the binary suffix settles on digits, drop the
+-- unary-side sentinel.
+g|0 -> |0;
+g|1 -> |1;
+g0  -> 0;
+g1  -> 1;
+g#  -> #;
+
+-- Stage 5: remove the separator once the unary side is empty.
+|0 -> 0;
+|1 -> 1;
+
+-- Guard: halt further rewrites once only the binary digits and `#` remain.
+# -> #;
+
+-- Stage 0: append the `|0#` scaffold by walking a cursor to the end.
+.1 -> 1.;
+. -> |0#;
+1 -> .1;
+-> |0#;
