@@ -1,0 +1,10 @@
+-- Compare two unary numbers separated by '?'.
+-- Outputs '<', '=', or '>' depending on left vs right.
+1?1 -> ?;
+?1 -> <;
+<1 -> <;
+1< -> <;
+1? -> >;
+1> -> >;
+>1 -> >;
+? -> =;
