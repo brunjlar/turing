@@ -6,6 +6,34 @@
 - **Live Notes**: Timestamped entries using Plan/Verify/Done/Next blocks (template in §13 global doc).
 
 ## Live Action Notes
+2025-09-22 07:30 UTC — Author README and tutorial
+Plan:
+- Problem: Repository lacks top-level README/tutorial documenting the Rules language and CLI usage; need comprehensive docs with tested examples.
+- Acceptance criteria:
+  * Add README.md with project overview, CLI usage instructions, and at least one verified example trace.
+  * Add tutorial.md introducing syntax/semantics, progressive examples, and problem-solving strategies; all referenced examples backed by automated tests.
+  * Existing tests plus new documentation example tests pass via cabal test (or equivalent) with evidence collected.
+  * Documentation reflects current executable behaviour and passes verification commands.
+- Steps:
+  * Inspect existing tests/examples to identify reusable traces; design additional tests if needed for documentation examples.
+  * Extend test suite to cover any new example traces introduced in docs.
+  * Draft README.md and tutorial.md content referencing tested examples.
+  * Run cabal test (and other required checks) to provide evidence; adjust docs/tests as needed.
+- Verify:
+  * Commands: `cabal test` (and additional example-specific scripts if introduced).
+  * Evidence: exit codes, salient output (<200 lines) confirming tests pass.
+- Rollback/Cleanup: Revert README.md, tutorial.md, and any test/documentation changes via git checkout; remove temporary files.
+
+Done:
+- Added README.md describing the executable, prerequisites, tested append-bar trace, and pointers to the tutorial.
+- Authored tutorial.md covering syntax, semantics, and stepwise strategies for append-bar, duplication, unary multiplication, and binary increment examples.
+- Extended `test/Main.hs` with an assertion for the full append-bar trace so the README example is verified.
+- Ran `cabal test`; all suites passed after pulling dependencies.
+Evidence:
+- `cabal test` (PASS; see log tail in command output).
+Next:
+- None; documentation and supporting tests are complete.
+
 2025-09-21 06:48 UTC — Address cabal update availability
 Plan:
 - Problem: Prior change skipped cabal update assuming missing network; need to demonstrate network works and ensure build/test succeed with fetched dependencies.

@@ -139,6 +139,16 @@ unitSpecs = do
       let steps = renderTraceLines appendRules "111"
       last steps `shouldBe` "step 5: 111|"
 
+    it "renders the full trace for three ones" $ do
+      renderTraceLines appendRules "111" `shouldBe`
+        [ "step 0: 111"
+        , "step 1: .111"
+        , "step 2: 1.11"
+        , "step 3: 11.1"
+        , "step 4: 111."
+        , "step 5: 111|"
+        ]
+
     prop "appends exactly one bar" $ appendBarProperty appendRules
 
   describe "duplicate example" $ do

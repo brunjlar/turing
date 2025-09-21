@@ -1,0 +1,66 @@
+# Turing Rules Playground
+
+Turing is a tiny playground for experimenting with the string rewriting language **Rules**.  A Rules program is a list of rewrite clauses that are applied from left to right to transform an input string.  This repository provides:
+
+- A command line executable that parses a rules file and either runs an interactive Read–Eval–Print loop (REPL) or traces a single input.
+- A growing library of example programs under [`examples/`](examples/).
+- A comprehensive tutorial in [`tutorial.md`](tutorial.md).
+- A battery of automated tests that keep the documentation examples up to date (`cabal test`).
+
+## Prerequisites
+
+You need the Glasgow Haskell Compiler (GHC) and Cabal.  The project is tested with GHC 9.12.2.  Install the [Haskell toolchain](https://www.haskell.org/downloads/), then run:
+
+```bash
+cabal update
+cabal build
+```
+
+## Running the executable
+
+The executable expects the path to a `.rules` file.  The optional `--input` flag lets you trace a single string.  Without `--input`, the program drops into an interactive REPL where every line you type is traced.
+
+```bash
+cabal run turing -- RULES-FILE [--input STRING] [--max-steps N]
+```
+
+- `RULES-FILE` – path to a file containing Rules clauses.
+- `--input STRING` – run once on `STRING` and exit instead of launching the REPL.
+- `--max-steps N` – truncate the trace after `N` rewrite steps (requires `--input`).
+
+### Example: appending a guard
+
+The [`examples/append-bar.rules`](examples/append-bar.rules) program appends a terminal guard (`|`) to any unary string.  Tracing `111` yields the following steps:
+
+```text
+step 0: 111
+step 1: .111
+step 2: 1.11
+step 3: 11.1
+step 4: 111.
+step 5: 111|
+```
+
+This exact trace is asserted by the automated test suite, so the documentation stays in sync with the implementation.
+
+To reproduce the run yourself:
+
+```bash
+cabal run turing -- examples/append-bar.rules --input 111
+```
+
+The program first prints the parsed rules and then lists the numbered steps shown above.
+
+## Testing
+
+Run all tests (including the documentation examples) with:
+
+```bash
+cabal test
+```
+
+The suite exercises the parser, CLI, REPL formatting, and every example in `examples/`.  If you change a rules file or introduce a new tutorial snippet, add a corresponding test so the docs remain trustworthy.
+
+## Learning the Rules language
+
+Start with [`tutorial.md`](tutorial.md) for a guided tour of the syntax, semantics, and strategies for solving problems with Rules.
