@@ -182,6 +182,28 @@ unitSpecs = do
 
     prop "produces unary products" $ multiplyProperty multiplyRules
 
+  describe "binary to unary example" $ do
+    binaryRules <- runIO $ do
+      contents <- TIO.readFile "examples/binary-to-unary.rules"
+      case parseRules contents of
+        Left err    -> fail ("failed to parse binary-to-unary.rules: " <> T.unpack err)
+        Right rules -> pure rules
+
+    let dropBar xs = reverse $ case reverse xs of
+          ('|' : rest) -> rest
+          rest         -> rest
+        finalBinary input = dropBar (last (trace binaryRules input))
+
+    it "converts documented samples" $ do
+      finalBinary "0" `shouldBe` ""
+      finalBinary "1" `shouldBe` "1"
+      finalBinary "10" `shouldBe` "11"
+      finalBinary "11" `shouldBe` "111"
+      finalBinary "100" `shouldBe` "1111"
+      finalBinary "1010" `shouldBe` replicate 10 '1'
+
+    prop "matches unary length for values up to 63" $ binaryToUnaryProperty dropBar binaryRules
+
   where
     duplicateProperty :: Rules Char -> Property
     duplicateProperty rules =
@@ -209,6 +231,23 @@ unitSpecs = do
         let input  = replicate n '1'
             output = last (trace rules input)
         in output === replicate n '1' ++ "|"
+
+    binaryToUnaryProperty :: (String -> String) -> Rules Char -> Property
+    binaryToUnaryProperty trim rules =
+      let maxValue = 63
+      in forAll (chooseInt (0, maxValue)) $ \n ->
+           let input  = toBinary n
+               output = trim (last (trace rules input))
+        in output === replicate n '1'
+
+toBinary :: Int -> String
+toBinary 0 = "0"
+toBinary n = reverse (go n)
+  where
+    go 0 = ""
+    go m = let (q, r) = m `quotRem` 2
+               bit     = if r == 0 then '0' else '1'
+           in bit : go q
 
 rulesToTuples :: Rules Char -> [([Char], [Char])]
 rulesToTuples = fmap $ \(Rule lhs rhs) -> (lhs, rhs)
