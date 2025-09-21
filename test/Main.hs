@@ -248,6 +248,21 @@ unitSpecs = do
            in if n == 0
                 then output === underflowMessage
                 else output === toBinary (n - 1)
+  describe "binary addition example" $ do
+    additionRules <- runIO $ do
+      contents <- TIO.readFile "examples/binary-addition.rules"
+      case parseRules contents of
+        Left err    -> fail ("failed to parse binary-addition.rules: " <> T.unpack err)
+        Right rules -> pure rules
+
+    let finalAddition input = dropLeadingSentinel (last (trace additionRules input))
+
+    it "adds documented samples" $ do
+      finalAddition "0+0" `shouldBe` "0"
+      finalAddition "1+1" `shouldBe` "10"
+      finalAddition "111+11" `shouldBe` "1010"
+
+    prop "adds numbers up to 31" $ binaryAdditionProperty additionRules
 
   describe "unary to binary example" $ do
     unaryBinaryRules <- runIO $ do
@@ -379,6 +394,18 @@ unitSpecs = do
                  output = last (trace rules input)
              in output === sort input
 
+    binaryAdditionProperty :: Rules Char -> Property
+    binaryAdditionProperty rules =
+      let maxValue = 31
+      in forAll (chooseInt (0, maxValue)) $ \a ->
+           forAll (chooseInt (0, maxValue)) $ \b ->
+             let lhs      = toBinary a
+                 rhs      = toBinary b
+                 input    = lhs ++ "+" ++ rhs
+                 output   = dropLeadingSentinel (last (trace rules input))
+                 expected = toBinary (a + b)
+             in output === expected
+
 rulesToTuples :: Rules Char -> [([Char], [Char])]
 rulesToTuples = fmap $ \(Rule lhs rhs) -> (lhs, rhs)
 
@@ -415,3 +442,8 @@ binaryString n
 
 stripSentinel :: String -> String
 stripSentinel = takeWhile (/= '#')
+
+dropLeadingSentinel :: String -> String
+dropLeadingSentinel = takeWhile isBinary . dropWhile (== 's')
+  where
+    isBinary c = c == '0' || c == '1'

@@ -18,6 +18,7 @@
 ### Rules Programming Tips
 - Unary multiplication: reuse the `* -> ^#` sentinel trick, operate in the `@` active state for controlled passes, and restore `^` at the end.
 - Unary duplication: append a trailing `#`, shuttle with `b/c/d/e` markers, then reveal via `@ -> |; b -> 1` to terminate cleanly.
+- Binary addition: the repeated-increment example stages input as `sLEFT#@RIGHT$`; drop the leading `s` after termination to read the sum.
 - Cursor movement: Empty-LHS rules can terminate safely when paired with a guard like `| -> |;`; pointer rules (`1 -> .1`, `.1 -> 1.`) move cursors without extra sentinels.
 - Validate termination assumptions with `Rewrite.trace` instead of pure reasoning.
 

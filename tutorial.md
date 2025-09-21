@@ -172,7 +172,29 @@ The documented samples evaluate exactly as advertised:
 The accompanying QuickCheck property picks numbers up to 512, feeds them through the rules, and checks that the output matches
 `n - 1` (or the underflow message when `n = 0`).
 
-## 10. Permutation Mechanics: Sorting Ternary Digits
+## 10. Repeated-Increment Addition in Binary
+
+[`examples/binary-addition.rules`](examples/binary-addition.rules) adds two binary numerals without any lookup tables. Instead of rippling a carry marker across the whole number, the program repeatedly **decrements** the right operand and **increments** the left operand. A sentinel `s` is threaded through the left edge so the increment step can append a new most-significant bit when necessary.
+
+- **Setup:** `+ -> s#p;` inserts the sentinel `s` and a loop boundary `#`. A cursor (`p0 -> 0p;`, `p1 -> 1p;`, `p -> @$;`) walks to the end, appending the `$` guard and positioning the loop marker `@` between the operands.
+- **Loop:** As long as the right operand is not the canonical `0`, the rules `@1 -> 1b; …; b$ -> -$;` subtract one from it. The borrow sweep leaves behind a marker `z` which hands control to the left side via `#z -> c#;`. The increment phase flips trailing `1`s to `0`s (`1c -> c0;`) until it finds a `0` (`0c -> u1;`) or the sentinel (`sc -> s1u;`), then pushes the completion marker `u` back to the boundary (`u# -> #@;`).
+- **Termination:** When the right operand reaches `0`, `#@0$ -> ;` removes the boundary and guard. The sentinel `s` remains at the front of the final string—drop it to read the binary sum.
+
+Representative rewrites (showing the raw machine output with the leading sentinel):
+
+```
+0+0   ⇒ s0
+1+1   ⇒ s10
+111+11 ⇒ s1010
+```
+
+To run the program manually and inspect the trace, use:
+
+```bash
+cabal run turing -- examples/binary-addition.rules --input 111+11 --max-steps 200
+```
+
+## 11. Permutation Mechanics: Sorting Ternary Digits
 
 [`examples/ternary-sort.rules`](examples/ternary-sort.rules) shows that Rules can do more than arithmetic. The program repeatedly swaps out-of-order neighbours so any string over `0`, `1`, and `2` settles into nondecreasing order.
 
@@ -198,7 +220,7 @@ step 8: 001122
 
 The test suite loads the same rules, asserts this trace verbatim, and adds a QuickCheck property that generates random ternary strings (up to length six) and confirms the final state equals `sort input`. This gives you a reusable pattern for any permutation logic: specify pairwise swaps and rely on monotone progress to guarantee termination.
 
-## 11. Composition Playbook
+## 12. Composition Playbook
 
 Once you trust the building blocks above, try combining them:
 
@@ -206,7 +228,7 @@ Once you trust the building blocks above, try combining them:
 - **Trace debugging:** Use `cabal run turing -- FILE --input STRING --max-steps N` to cap runaway traces while you experiment with new compositions.
 - **Property checks everywhere:** Every time you document a behaviour, add a deterministic assertion and a QuickCheck property in `test/Main.hs`. That way the docs and programs evolve together.
 
-## 12. Strategies and Tricks
+## 13. Strategies and Tricks
 
 - **Work left-to-right.** Because matching is leftmost-first, structure your rules so early clauses initialise state and later ones tidy up. Guard clauses (`| -> |;`) protect finished results from being reprocessed.
 - **Introduce markers.** Temporary symbols (`.`, `@`, `b`, `+`, `g`, etc.) turn the string into a miniature state machine. Plan your pipeline as phases and dedicate a few unique markers to each phase.
@@ -215,7 +237,7 @@ Once you trust the building blocks above, try combining them:
 - **Prove behaviour with traces.** Use `cabal run turing -- FILE --input STRING` while developing. The numbered trace quickly reveals where a pipeline stalls or loops.
 - **Document what you learn.** When you discover a new trick or marker pattern, add a short note to this tutorial and cover it with a test. Future you (and teammates) will thank you.
 
-## 13. Verifying and Iterating
+## 14. Verifying and Iterating
 
 Add new examples under `examples/` and extend `test/Main.hs` with deterministic checks (exact traces or final states) plus property tests when possible. Running `cabal test` recompiles the rules and fails fast if a documentation example goes stale.
 
@@ -234,7 +256,7 @@ When you add new behaviours:
 2. Capture the final state (or trace) in a unit test so the documentation can never drift.
 3. Note any reusable insights in `AGENTS.md` so the next change starts from a stronger baseline.
 
-## 14. What to Try Next
+## 15. What to Try Next
 
 - Implement unary addition that reuses the duplication pipeline as a subroutine.
 - Extend the binary lookup table to cover wider inputs or derive it programmatically from a helper script.

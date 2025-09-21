@@ -1,0 +1,54 @@
+-- Binary addition without lookup tables.
+-- The program repeatedly decrements the right operand while incrementing
+-- the left operand.  The layout after setup is `sLEFT#@RIGHT$`, where
+-- `s` marks the start of the left operand, `@` is the loop marker, and
+-- `$` guards the right end.
+
+-- Stage 0: seed the sentinel and append the `$` guard by walking a cursor
+-- to the end of the input.
++ -> s#p;
+1s -> s1;
+0s -> s0;
+p0 -> 0p;
+p1 -> 1p;
+p -> @$;
+0@ -> @0;
+1@ -> @1;
+
+-- Normalise the right operand so zero is represented as a single `0`.
+@00 -> @0;
+@01 -> @1;
+@$ -> @0$;
+
+-- Termination: once the right operand is exactly `0`, drop the boundary,
+-- marker, and sentinel to reveal the sum.
+#@0$ -> ;
+
+-- Stage 1: begin the decrement of the right operand when it is strictly
+-- positive.  `b` walks to the end before the borrow sweep.
+@1 -> 1b;
+@0 -> 0b;
+b0 -> 0b;
+b1 -> 1b;
+b$ -> -$;
+
+-- Borrow sweep: turn the right operand into `n - 1`.
+0- -> -1;
+1- -> z0;
+
+-- Stage 2: return to the boundary so we can increment the left operand.
+0z -> z0;
+1z -> z1;
+#z -> c#;
+
+-- Increment the left operand by one.  `c` propagates left until it
+-- resolves (`0`) or reaches the sentinel (`s`).
+0c -> u1;
+1c -> c0;
+sc -> s1u;
+
+-- Stage 3: push the completion marker back to the boundary and start the
+-- next loop iteration.
+u0 -> 0u;
+u1 -> 1u;
+u# -> #@;
