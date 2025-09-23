@@ -26,7 +26,16 @@ cabal run turing -- RULES-FILE [--input STRING] [--max-steps N]
 
 - `RULES-FILE` – path to a file containing Rules clauses.
 - `--input STRING` – run once on `STRING` and exit instead of launching the REPL.
-- `--max-steps N` – truncate the trace after `N` rewrite steps (requires `--input`).
+- `--max-steps N` – truncate the trace after `N` rewrite steps (0 = unlimited). The same limit is applied to REPL traces when `--input` is omitted.
+
+### Interactive REPL shortcuts
+
+When the REPL is active, a short banner lists the available shortcuts:
+
+- Press <kbd>Ctrl</kbd>+<kbd>R</kbd> (or type `:reload`) to parse the rules file again.
+- Press <kbd>Ctrl</kbd>+<kbd>S</kbd> (or type `:steps`) and enter a natural number to set the maximum rewrite steps for future traces. Enter `0` to remove the cap.
+
+The current step limit is echoed after every change, and the REPL prints a reminder whenever a trace stops early because it hit the configured limit.
 
 ### Example: Appending a Guard
 
@@ -47,7 +56,7 @@ Reproduce the run yourself:
 cabal run turing -- examples/append-bar.rules --input 111
 ```
 
-The program first prints the parsed rules and then lists the numbered steps shown above. Add `--max-steps` if you want to cap exploratory runs while drafting new rules.
+The program first prints the parsed rules and then lists the numbered steps shown above. Add `--max-steps` if you want to cap exploratory runs while drafting new rules, or press <kbd>Ctrl</kbd>+<kbd>S</kbd> inside the REPL to adjust the limit on the fly.
 
 ## Examples Library
 

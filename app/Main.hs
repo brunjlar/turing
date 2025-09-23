@@ -25,9 +25,10 @@ processFile opts = do
       exitFailure
     Right rules -> do
       printRules rules
+      let limit = normalizeSteps (maxSteps opts)
       case inputString opts of
-        Just input -> runTraceOnce rules (maxSteps opts) input
-        Nothing    -> runRepl (reloadAction opts) rules
+        Just input -> runTraceOnce rules limit input
+        Nothing    -> runRepl (reloadAction opts) limit rules
 
 printRules :: Rules Char -> IO ()
 printRules rules = print rules
@@ -36,3 +37,10 @@ reloadAction :: Options -> IO (Either Text (Rules Char))
 reloadAction opts = do
   contents <- T.readFile (rulesFile opts)
   pure (parseRules contents)
+
+normalizeSteps :: Maybe Int -> Maybe Int
+normalizeSteps maybeLimit = maybeLimit >>= toLimit
+  where
+    toLimit n
+      | n <= 0    = Nothing
+      | otherwise = Just n

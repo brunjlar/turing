@@ -17,8 +17,12 @@ import           Numeric          (showIntAtBase)
 
 import           Rewrite          (Rule (..), Rules, trace)
 import           Rewrite.Parser   (parseRules)
-import           Rewrite.Repl     (isReloadCommand, renderTraceLines,
-                                   renderTraceLinesLimited)
+import           Rewrite.Repl     ( TracePreview (..)
+                                  , isReloadCommand
+                                  , renderTraceLines
+                                  , renderTraceLinesLimited
+                                  , renderTracePreview
+                                  )
 import           Turing.CLI       (Options (..), parserInfo)
 
 import           Options.Applicative (ParserResult (..), defaultPrefs,
@@ -125,6 +129,27 @@ unitSpecs = do
       let rules = [Rule "a" "aa"]
       take 3 (renderTraceLinesLimited Nothing rules "a") `shouldBe`
         take 3 (renderTraceLines rules "a")
+
+  describe "renderTracePreview" $ do
+    it "reports when the trace is truncated" $ do
+      let rules = [Rule "a" "aa"]
+      let preview = renderTracePreview (Just 1) rules "a"
+      previewLines preview `shouldBe` ["step 0: a", "step 1: aa"]
+      previewTruncated preview `shouldBe` True
+
+    it "treats zero as unlimited" $ do
+      let rules = [Rule "a" "aa"]
+      let preview = renderTracePreview (Just 0) rules "a"
+      take 3 (previewLines preview) `shouldBe`
+        ["step 0: a", "step 1: aa", "step 2: aaa"]
+      previewTruncated preview `shouldBe` False
+
+    it "marks finished traces as complete" $ do
+      let rules = [Rule "a" "b", Rule "b" "c"]
+      let preview = renderTracePreview (Just 5) rules "a"
+      previewLines preview `shouldBe`
+        ["step 0: a", "step 1: b", "step 2: c"]
+      previewTruncated preview `shouldBe` False
 
   describe "isReloadCommand" $ do
     it "recognizes Ctrl-R" $ do
