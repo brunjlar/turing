@@ -127,15 +127,31 @@ The final line is `step …: 1010#`; removing `#` gives `1010` (decimal 10).
 
 ## 7. Translating Number Systems: Binary → Unary
 
-[`examples/binary-to-unary.rules`](examples/binary-to-unary.rules) performs the inverse conversion for inputs up to six bits. Instead of simulating arithmetic, it uses a lookup table of rewrite clauses so each binary literal rewrites directly to the corresponding count of `1`s followed by `|`.
+[`examples/binary-to-unary.rules`](examples/binary-to-unary.rules) now mirrors the
+state-machine approach from the previous section instead of relying on a lookup
+table. The program treats the state of the tape as `BINARY@UNARY!` and iteratively
+performs “borrow one / append one” until the binary half reaches zero:
 
-Highlights:
+1. **Borrow** the right-most `1`: rule `@ -> R@` seeds a scanning cursor to the
+   left of the separator. `R` walks left over zeros, tagging them as `z` so the
+   borrow can be paid back later. Hitting `1` flips it to `0` by transitioning
+   into state `T`; if `R` never sees a `1`, the binary portion is already zero
+   and the program enters the finalisation branch (`F`/`G`).
+2. **Propagate the carry back**: `T` travels right across the modified digits,
+   restoring each `z` to `1`. Upon reaching `@`, the rules hand control to the
+   unary append phase by swapping in marker `P`.
+3. **Append a unary digit**: `P` slides through the unary suffix and drops a
+   fresh `1` just before the terminal `!`, yielding the invariant
+   `BINARY'@UNARY1!` for the next loop.
+4. **Finalise** once the binary half is empty: the zero-detection branch rewrites
+   the entire prefix to a guard bar via `F@ -> G` followed by `G! -> |`. Because
+   this is the only path that emits `|`, the halting guard `| -> |;` at the top of
+   the file remains correct for all inputs.
 
-- Smaller literals appear later in the file so longer patterns match first (`100000` before `1`). This prevents partial matches on prefixes.
-- Every rewritten output ends with `|`. The guard rule `| -> |;` sits at the top, halting the program immediately after a lookup succeeds.
-- Tests remove the guard before asserting that the output length equals the decoded integer.
-
-You can combine this with the previous section to build round-trips. For example, running `binary-to-unary.rules` after `unary-to-binary.rules` recovers the original unary payload (minus the guard) for all documented cases.
+Running `binary-to-unary.rules` after `unary-to-binary.rules` still forms a
+round-trip. The property test covers binary values up to 63, and exploratory runs
+with longer strings demonstrate that each iteration performs a bounded sweep over
+the tape, so the total work is proportional to the numeric value of the input.
 
 ## 8. Carry Choreography: Incrementing Binary
 
@@ -353,7 +369,7 @@ lowering them to Rules.
 ## 17. What to Try Next
 
 - Implement unary addition that reuses the duplication pipeline as a subroutine.
-- Extend the binary lookup table to cover wider inputs or derive it programmatically from a helper script.
+- Experiment with alternative decrement strategies (e.g. Turing machine composition) to cut down the number of passes over the tape.
 - Explore optimisations such as using multiple guards to short-circuit different phases.
 
 Happy rewriting!

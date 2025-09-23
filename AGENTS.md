@@ -13,6 +13,7 @@
 - If tests unexpectedly fail because packages are missing, rerun `cabal update --index-state <timestamp>` and retry.
 
 ### CLI Usage
+- Prefer the compiled executable: `turing RULES --input STRING` prints a finite trace and exits. `cabal run turing -- RULES` still works for ad-hoc traces/REPLs.
 - `cabal run turing -- <rules-file>` prints parsed rules, then enters a REPL that tolerates Ctrl-C. Pipe sample input to trace rewrites, e.g. `printf 'abc\n' | cabal run turing -- test/data/sample.rules`.
 
 ### Rules Programming Tips
@@ -43,6 +44,7 @@ Done:
 Next:
 - Single next action or “None”.
 ```
+
 
 ## Maintenance Protocol
 - Before starting work, skim the Mini Index and existing Live Action Notes.

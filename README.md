@@ -66,7 +66,7 @@ Each example has a matching walkthrough in the tutorial and is verified by `caba
 - [`examples/duplicate.rules`](examples/duplicate.rules) – duplicate a unary payload without requiring sentinels (tutorial §4).
 - [`examples/unary-multiply.rules`](examples/unary-multiply.rules) – perform unary multiplication with staged pointers (tutorial §5).
 - [`examples/unary-to-binary.rules`](examples/unary-to-binary.rules) – convert unary counts into binary digits via an incrementing workspace (tutorial §6).
-- [`examples/binary-to-unary.rules`](examples/binary-to-unary.rules) – map binary numerals back to unary using a lookup table (tutorial §7).
+- [`examples/binary-to-unary.rules`](examples/binary-to-unary.rules) – map binary numerals back to unary by repeatedly borrowing and appending `1`s (tutorial §7).
 - [`examples/binary-increment.rules`](examples/binary-increment.rules) – increment binary strings while preserving a guard (tutorial §8).
 
 Try composing them: unary → binary → increment → binary → unary yields a unary successor machine powered entirely by the provided examples.
