@@ -1,5 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+-- | Terminal user interface helpers for exploring rewrite systems.
+--
+-- The REPL module renders traces, limits their length for preview purposes,
+-- and offers an interactive loop for experimenting with rules.
 module Rewrite.Repl
   ( TracePreview (..)
   , renderTraceLines
@@ -22,20 +26,24 @@ import           Rewrite                (Rules, trace)
 import           System.IO              (hFlush, isEOF, stderr, stdout)
 import           Text.Read              (readMaybe)
 
+-- | Summary of a trace run suitable for display in the REPL.
 data TracePreview = TracePreview
-  { previewLines     :: [T.Text]
-  , previewTruncated :: Bool
+  { previewLines     :: [T.Text]  -- ^ Rendered rewrite steps.
+  , previewTruncated :: Bool      -- ^ Whether more steps were suppressed.
   } deriving (Eq, Show)
 
+-- | Render the full trace for an input string with step numbers.
 renderTraceLines :: Rules Char -> String -> [T.Text]
 renderTraceLines rules input = zipWith format [0 :: Int ..] (trace rules input)
   where
     format idx step = T.pack ("step " <> show idx <> ": " <> step)
 
+-- | Render trace lines but disregard any truncation state.
 renderTraceLinesLimited :: Maybe Int -> Rules Char -> String -> [T.Text]
 renderTraceLinesLimited maybeLimit rules input =
   previewLines (renderTracePreview maybeLimit rules input)
 
+-- | Compute a truncated preview of a trace respecting the optional limit.
 renderTracePreview :: Maybe Int -> Rules Char -> String -> TracePreview
 renderTracePreview maybeLimit rules input =
   case normalizedLimit of
@@ -47,26 +55,32 @@ renderTracePreview maybeLimit rules input =
     traced = renderTraceLines rules input
     normalizedLimit = normalizeLimit maybeLimit
 
+-- | Run a single trace, discarding the truncation status.
 runTraceOnce :: Rules Char -> Maybe Int -> String -> IO ()
 runTraceOnce rules maybeLimit input = do
   _ <- runTraceOnceWithStatus rules maybeLimit input
   pure ()
 
+-- | Run a single trace and return the resulting preview.
 runTraceOnceWithStatus :: Rules Char -> Maybe Int -> String -> IO TracePreview
 runTraceOnceWithStatus rules maybeLimit input = do
   let preview = renderTracePreview maybeLimit rules input
   for_ (previewLines preview) TIO.putStrLn
   pure preview
 
+-- | Control character used to trigger rule reloads.
 reloadKey :: Char
 reloadKey = '\x12'
 
+-- | Control character used to change the step limit.
 setLimitKey :: Char
 setLimitKey = '\x13'
 
+-- | Detect commands that request a rules reload.
 isReloadCommand :: String -> Bool
 isReloadCommand input = input == [reloadKey] || input == "^R" || input == ":reload"
 
+-- | Run the interactive REPL, reloading rules and adjusting limits on demand.
 runRepl :: IO (Either T.Text (Rules Char)) -> Maybe Int -> Rules Char -> IO ()
 runRepl reloadRules initialLimit initialRules = do
   putStrLn "Enter strings to trace. Press Ctrl-C to exit."
@@ -157,6 +171,7 @@ runRepl reloadRules initialLimit initialRules = do
       let limitText = maybe "unknown" show maybeLimit
       putStrLn $ "Trace truncated after " <> limitText <> " step(s). Increase the limit with Ctrl-S to see more."
 
+-- | Normalise the optional limit, treating zero and negatives as unlimited.
 normalizeLimit :: Maybe Int -> Maybe Int
 normalizeLimit maybeLimit = maybeLimit >>= toLimit
   where
@@ -164,6 +179,7 @@ normalizeLimit maybeLimit = maybeLimit >>= toLimit
       | n <= 0    = Nothing
       | otherwise = Just n
 
+-- | Parse user input into an optional limit, rejecting negatives.
 parseLimit :: String -> Maybe (Maybe Int)
 parseLimit input = do
   number <- readMaybe input :: Maybe Int

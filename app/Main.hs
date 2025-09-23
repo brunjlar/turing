@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+-- | Entry point for the rewrite REPL executable.
 module Main (main) where
 
 import           Data.Text      (Text)
@@ -11,11 +12,13 @@ import           System.Exit    (exitFailure)
 import           System.IO      (stderr)
 import           Turing.CLI     (Options (..), parseOptions)
 
+-- | Parse CLI options and dispatch to the REPL or one-off trace.
 main :: IO ()
 main = do
   opts <- parseOptions
   processFile opts
 
+-- | Load rules from disk and either run the REPL or trace a single input.
 processFile :: Options -> IO ()
 processFile opts = do
   contents <- T.readFile (rulesFile opts)
@@ -30,14 +33,17 @@ processFile opts = do
         Just input -> runTraceOnce rules limit input
         Nothing    -> runRepl (reloadAction opts) limit rules
 
+-- | Echo the parsed rules so users can verify what will run.
 printRules :: Rules Char -> IO ()
 printRules rules = print rules
 
+-- | Reload the rules file for the REPL, returning parse errors verbatim.
 reloadAction :: Options -> IO (Either Text (Rules Char))
 reloadAction opts = do
   contents <- T.readFile (rulesFile opts)
   pure (parseRules contents)
 
+-- | Convert the optional CLI limit into the internal representation.
 normalizeSteps :: Maybe Int -> Maybe Int
 normalizeSteps maybeLimit = maybeLimit >>= toLimit
   where

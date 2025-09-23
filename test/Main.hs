@@ -1,15 +1,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+-- | Test suite for the rewrite REPL and Turing machine tooling.
 module Main (main) where
 
-import           Test.Hspec       (Spec, describe, it, runIO, shouldBe,
-                                   shouldSatisfy)
+import           Test.Hspec       (Expectation, Spec, describe, it, runIO,
+                                   shouldBe, shouldSatisfy)
 import           Test.Hspec.QuickCheck (prop)
 import           Test.Tasty       (defaultMain, testGroup)
 import           Test.Tasty.Hspec (testSpec)
 
 import           Data.Char        (intToDigit)
 import           Data.List        (sort)
+import qualified Data.Map.Strict  as Map
+import qualified Data.Set         as Set
 import           Data.Text        (Text)
 import qualified Data.Text        as T
 import qualified Data.Text.IO     as TIO
@@ -24,6 +27,10 @@ import           Rewrite.Repl     ( TracePreview (..)
                                   , renderTracePreview
                                   )
 import           Turing.CLI       (Options (..), parserInfo)
+import           Turing.Machine   (Direction (..), Transition (..))
+import qualified Turing.Machine   as TM
+import           Turing.Translation (compileMachine, defaultTapeEncoding,
+                                     initialTape)
 
 import           Options.Applicative (ParserResult (..), defaultPrefs,
                                       execParserPure)
@@ -384,7 +391,73 @@ unitSpecs = do
 
     prop "sorts arbitrary ternary strings" $ ternarySortProperty ternaryRules
 
+  describe "Turing toolbox" $ do
+    let encoding = defaultTapeEncoding
+        blank    = '_'
+        alphabet = Set.fromList ['0', '1', blank]
+        state0   = TM.state 0
+        state1   = TM.state 1
+        buildMachine initial halting transitions =
+          expectRight (TM.mkMachine blank alphabet initial halting transitions)
+
+    describe "compileMachine" $ do
+      it "emits left-moving rules including boundary growth" $ do
+        let machine = buildMachine state0 (Set.singleton state1) $
+              Map.fromList [ ((state0, '1')
+                             , Transition state1 '0' MoveLeft
+                             )
+                           ]
+            rules = compileMachine encoding machine
+        rules `shouldContainRule` Rule "0A1" "B00"
+        rules `shouldContainRule` Rule "<A1" "<B_0"
+
+      it "emits right-moving rules that extend the tape" $ do
+        let machine = buildMachine state0 (Set.singleton state1) $
+              Map.fromList [ ((state0, '1')
+                             , Transition state1 '0' MoveRight
+                             )
+                           ]
+            rules = compileMachine encoding machine
+        rules `shouldContainRule` Rule "A1>" "0B_>"
+
+      it "allows rewrite traces to follow the machine" $ do
+        let machine = buildMachine state0 (Set.singleton state1) $
+              Map.fromList [ ((state0, '1')
+                             , Transition state1 '0' MoveLeft
+                             )
+                           ]
+            rules    = compileMachine encoding machine
+            start    = expectRight (initialTape encoding machine "101")
+            finalStr = last (trace rules start)
+        finalStr `shouldBe` "<B_001>"
+
+    describe "chainMachines" $ do
+      let writer = buildMachine state0 (Set.singleton state1) $
+            Map.fromList [ ((state0, blank)
+                           , Transition state1 '1' Stay
+                           )
+                         ]
+          mover = buildMachine state0 (Set.singleton state1) $
+            Map.fromList [ ((state0, '1')
+                           , Transition state1 '1' MoveRight
+                           )
+                         ]
+
+      it "sequences machines by offsetting and bridging halting states" $ do
+        let combined = expectRight (TM.chainMachines writer mover)
+            rules    = compileMachine encoding combined
+            start    = expectRight (initialTape encoding combined "")
+            finalStr = last (trace rules start)
+        finalStr `shouldBe` "<1D_>"
+
   where
+    expectRight :: Show e => Either e a -> a
+    expectRight = either (error . show) id
+
+    shouldContainRule :: Rules Char -> Rule Char -> Expectation
+    shouldContainRule rules expected =
+      rules `shouldSatisfy` (expected `elem`)
+
     duplicateProperty :: Rules Char -> Property
     duplicateProperty rules =
       let maxLen = 12
