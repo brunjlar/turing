@@ -2,6 +2,7 @@
 
 module Main (main) where
 
+import           Data.Text      (Text)
 import qualified Data.Text.IO   as T
 import           Rewrite        (Rules)
 import           Rewrite.Parser (parseRules)
@@ -26,7 +27,12 @@ processFile opts = do
       printRules rules
       case inputString opts of
         Just input -> runTraceOnce rules (maxSteps opts) input
-        Nothing    -> runRepl rules
+        Nothing    -> runRepl (reloadAction opts) rules
 
 printRules :: Rules Char -> IO ()
 printRules rules = print rules
+
+reloadAction :: Options -> IO (Either Text (Rules Char))
+reloadAction opts = do
+  contents <- T.readFile (rulesFile opts)
+  pure (parseRules contents)

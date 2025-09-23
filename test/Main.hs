@@ -17,7 +17,8 @@ import           Numeric          (showIntAtBase)
 
 import           Rewrite          (Rule (..), Rules, trace)
 import           Rewrite.Parser   (parseRules)
-import           Rewrite.Repl     (renderTraceLines, renderTraceLinesLimited)
+import           Rewrite.Repl     (isReloadCommand, renderTraceLines,
+                                   renderTraceLinesLimited)
 import           Turing.CLI       (Options (..), parserInfo)
 
 import           Options.Applicative (ParserResult (..), defaultPrefs,
@@ -124,6 +125,13 @@ unitSpecs = do
       let rules = [Rule "a" "aa"]
       take 3 (renderTraceLinesLimited Nothing rules "a") `shouldBe`
         take 3 (renderTraceLines rules "a")
+
+  describe "isReloadCommand" $ do
+    it "recognizes Ctrl-R" $ do
+      isReloadCommand "\x12" `shouldBe` True
+
+    it "ignores other input" $ do
+      isReloadCommand "abc" `shouldBe` False
 
   describe "append-bar example" $ do
     appendRules <- runIO $ do
