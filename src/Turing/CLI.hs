@@ -30,7 +30,7 @@ optionsParser = Options
   <*> optional (option nonNegative
         ( long "max-steps"
        <> metavar "N"
-       <> help "Maximum number of rewrite steps to display (requires --input)"
+       <> help "Maximum number of rewrite steps to display (0 = unlimited). Applies to REPL when --input is omitted."
         ))
   where
     nonNegative :: ReadM Int
