@@ -3,6 +3,7 @@
 module Rewrite.Repl
   ( renderTraceLines
   , renderTraceLinesLimited
+  , isReloadCommand
   , runRepl
   , runTraceOnce
   ) where
@@ -11,10 +12,11 @@ import           Control.Exception      (AsyncException (UserInterrupt), catch,
                                          throwIO)
 import           Control.Monad          (when)
 import           Data.Foldable          (for_)
+import           Data.IORef             (IORef, newIORef, readIORef, writeIORef)
 import qualified Data.Text              as T
 import qualified Data.Text.IO           as TIO
 import           Rewrite                (Rules, trace)
-import           System.IO              (hFlush, isEOF, stdout)
+import           System.IO              (hFlush, isEOF, stderr, stdout)
 
 renderTraceLines :: Rules Char -> String -> [T.Text]
 renderTraceLines rules input = zipWith format [0 :: Int ..] (trace rules input)
@@ -30,13 +32,20 @@ runTraceOnce :: Rules Char -> Maybe Int -> String -> IO ()
 runTraceOnce rules maybeLimit input =
   for_ (renderTraceLinesLimited maybeLimit rules input) TIO.putStrLn
 
-runRepl :: Rules Char -> IO ()
-runRepl rules = do
+reloadKey :: Char
+reloadKey = '\x12'
+
+isReloadCommand :: String -> Bool
+isReloadCommand input = input == [reloadKey] || input == "^R" || input == ":reload"
+
+runRepl :: IO (Either T.Text (Rules Char)) -> Rules Char -> IO ()
+runRepl reloadRules initialRules = do
   putStrLn "Enter strings to trace. Press Ctrl-C to exit."
-  loop `catch` exitOnInterrupt
+  rulesRef <- newIORef initialRules
+  loop rulesRef `catch` exitOnInterrupt
   where
-    loop :: IO ()
-    loop = do
+    loop :: IORef (Rules Char) -> IO ()
+    loop rulesRef = do
       putStr "> "
       hFlush stdout
       eof <- isEOF
@@ -44,11 +53,25 @@ runRepl rules = do
         then putStrLn "" -- exit on EOF (Ctrl-D)
         else do
           line <- getLine
-          continue <- catch (printTrace line >> pure True) traceInterrupted
-          when continue loop
+          if isReloadCommand line
+            then do
+              result <- reloadRules
+              case result of
+                Left err -> TIO.hPutStrLn stderr err
+                Right rules -> do
+                  writeIORef rulesRef rules
+                  printTracePreview rules
+              loop rulesRef
+            else do
+              rules <- readIORef rulesRef
+              continue <- catch (printTrace rules line >> pure True) traceInterrupted
+              when continue (loop rulesRef)
 
-    printTrace :: String -> IO ()
-    printTrace line = runTraceOnce rules Nothing line
+    printTrace :: Rules Char -> String -> IO ()
+    printTrace rules line = runTraceOnce rules Nothing line
+
+    printTracePreview :: Rules Char -> IO ()
+    printTracePreview = print
 
     traceInterrupted :: AsyncException -> IO Bool
     traceInterrupted UserInterrupt = do
