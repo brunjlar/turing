@@ -279,7 +279,78 @@ cabal run turing -- examples/unary-compare.rules --input 111?11
 
 The test suite also includes a QuickCheck property that generates random unary pairs (up to length eight) and confirms the output matches `compare (length left) (length right)`.
 
-## 16. What to Try Next
+## 16. Automating Rules with Turing Machines
+
+Rules are expressive, but stateful algorithms are often easier to describe as
+deterministic Turing machines. The library now provides two helper modules:
+
+- `Turing.Machine` defines the machine algebra (`StateId`, `Transition`, and
+  the `Machine` record) plus utilities such as `mkMachine` and
+  `chainMachines`.
+- `Turing.Translation` turns a `Machine` into concrete rewrite rules via
+  `compileMachine` and constructs well-formed tapes with `initialTape`. The
+  default tape encoding uses `<` and `>` as the hard boundaries and inserts a
+  blank cell (`_`) whenever the head moves beyond the current payload.
+
+Each state is rendered as an uppercase marker (`A`, `B`, …) that lives to the
+left of the tape cell under the head, exactly as sketched in the introduction
+to this task. The translator enumerates all possible neighbour symbols so that
+moving left or right automatically grows the tape when necessary.
+
+Here is a complete example that mirrors the test suite:
+
+```haskell
+import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
+import           Rewrite (trace)
+import qualified Turing.Machine as TM
+import           Turing.Translation (compileMachine, defaultTapeEncoding,
+                                     initialTape)
+
+let blank    = '_'
+    alphabet = Set.fromList ['0', '1', blank]
+    start    = TM.state 0
+    halt     = TM.state 1
+in do
+  machine <- TM.mkMachine blank alphabet start (Set.singleton halt)
+               (Map.fromList [((start, '1'), TM.Transition halt '0' TM.MoveLeft)])
+  tape0   <- initialTape defaultTapeEncoding machine "101"
+  let rules = compileMachine defaultTapeEncoding machine
+  pure (take 2 (trace rules tape0))
+-- Right ["<A101>", "<B_001>"]
+```
+
+The generated program includes interior rules such as `0A1 -> B00` alongside
+boundary growth (`<A1 -> <B_0`). Because every rewrite maintains the
+"exactly one state marker" invariant, the Rules engine can evaluate the result
+without any additional guards.
+
+Turing machines compose naturally. `chainMachines` rewires the halting states of
+the first machine so they hand control to the initial state of the second while
+automatically offsetting the second machine’s state identifiers. Reusing the
+same `blank`, `alphabet`, `start`, and `halt` definitions:
+
+```haskell
+do
+  writer <- TM.mkMachine blank alphabet start (Set.singleton halt)
+              (Map.fromList [((start, blank), TM.Transition halt '1' TM.Stay)])
+  mover  <- TM.mkMachine blank alphabet start (Set.singleton halt)
+              (Map.fromList [((start, '1'), TM.Transition halt '1' TM.MoveRight)])
+  machine' <- TM.chainMachines writer mover
+  tape1    <- initialTape defaultTapeEncoding machine' ""
+  let rules' = compileMachine defaultTapeEncoding machine'
+  pure (last (trace rules' tape1))
+-- Right "<1D_>"
+```
+
+The helper guards against invalid constructions: `mkMachine` rejects transitions
+that mention symbols outside the declared alphabet, `initialTape` validates the
+input string, and `chainMachines` fails when a halting state still has outgoing
+transitions. The examples above (and the accompanying unit tests) offer a solid
+starting point for building reusable subroutines in Turing space before
+lowering them to Rules.
+
+## 17. What to Try Next
 
 - Implement unary addition that reuses the duplication pipeline as a subroutine.
 - Extend the binary lookup table to cover wider inputs or derive it programmatically from a helper script.

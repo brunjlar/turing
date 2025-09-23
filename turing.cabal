@@ -64,6 +64,8 @@ library
       , Rewrite.Parser
       , Rewrite.Repl
       , Turing.CLI
+      , Turing.Machine
+      , Turing.Translation
 
     -- Modules included in this library but not exported.
     -- other-modules:
@@ -74,6 +76,7 @@ library
     -- Other library packages from which modules are imported.
     build-depends:
         base ^>=4.21.0.0,
+        containers ^>=0.7,
         megaparsec ^>=9.6,
         optparse-applicative >=0.18 && <0.21,
         text >=2.1 && <2.2
@@ -134,6 +137,7 @@ test-suite turing-test
     -- Test dependencies.
     build-depends:
         base ^>=4.21.0.0,
+        containers ^>=0.7,
         hspec ^>=2.11,
         QuickCheck ^>=2.14,
         optparse-applicative >=0.18 && <0.21,

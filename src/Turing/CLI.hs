@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+-- | Command-line option parsing for the rewrite REPL.
 module Turing.CLI
   ( Options (..)
   , optionsParser
@@ -10,12 +11,14 @@ module Turing.CLI
 import           Options.Applicative
 import           Text.Read           (readMaybe)
 
+-- | User-provided options for the executable.
 data Options = Options
-  { rulesFile   :: FilePath
-  , inputString :: Maybe String
-  , maxSteps    :: Maybe Int
+  { rulesFile   :: FilePath     -- ^ Path to the rules file.
+  , inputString :: Maybe String -- ^ Optional input to trace immediately.
+  , maxSteps    :: Maybe Int    -- ^ Optional cap on reported steps.
   } deriving (Eq, Show)
 
+-- | Parser for the executable options.
 optionsParser :: Parser Options
 optionsParser = Options
   <$> argument str
@@ -34,10 +37,12 @@ optionsParser = Options
         ))
   where
     nonNegative :: ReadM Int
+    -- | Parse a natural number, rejecting negative inputs.
     nonNegative = maybeReader $ \s -> do
       n <- readMaybe s
       if n >= 0 then Just n else Nothing
 
+-- | Complete parser information for the CLI.
 parserInfo :: ParserInfo Options
 parserInfo = info (helper <*> optionsParser)
   ( fullDesc
@@ -45,5 +50,6 @@ parserInfo = info (helper <*> optionsParser)
  <> header "turing - a string rewriting playground"
   )
 
+-- | Parse the command-line arguments, exiting on failure.
 parseOptions :: IO Options
 parseOptions = execParser parserInfo
